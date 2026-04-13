@@ -24,26 +24,77 @@ namespace TOSTeamVisitsIcons
         static RoleCardPanel panel = null;
         internal static void HandleMessages(ChatLogMessage chatLogMessage)
         {
-            if (Service.Game.Sim.info.gameInfo.Data.playPhase == PlayPhase.NIGHT && Service.Game.Sim.info.gameInfo.Data.gamePhase == GamePhase.PLAY && chatLogMessage.chatLogEntry is ChatLogFactionTargetSelectionFeedbackEntry)
+            if (Service.Game.Sim.info.gameInfo.Data.playPhase == PlayPhase.NIGHT && Service.Game.Sim.info.gameInfo.Data.gamePhase == GamePhase.PLAY && (chatLogMessage.chatLogEntry is ChatLogFactionTargetSelectionFeedbackEntry || chatLogMessage.chatLogEntry is ChatLogTargetSelectionFeedbackEntry))
             {
                 try
                 {
-                    ChatLogFactionTargetSelectionFeedbackEntry data = chatLogMessage.chatLogEntry as ChatLogFactionTargetSelectionFeedbackEntry;
-                    UIRoleData.UIRoleDataInstance roleData = null;
-                    Console.Write($"TOSTVI recieved message: player {data.teammatePosition + 1} (role {data.teammateRole}) has decided to ");
-                    if (data.bIsCancel)
+                    int teammatePosition;
+                    Role teammateRole;
+                    int teammateTarget1;
+                    int teammateTarget2;
+                    bool hasNecronomicon;
+                    bool isChangingTarget;
+                    bool isCancel;
+                    MenuChoiceType menuChoiceType;
+
+                    if (chatLogMessage.chatLogEntry is ChatLogFactionTargetSelectionFeedbackEntry)
                     {
-                        Console.WriteLine($"Cancel their night ability");
-                    }
-                    else if (data.bIsChangingTarget)
-                    {
-                        Console.WriteLine($"Change their target to {data.teammateTargetingPosition1}");
+                        ChatLogFactionTargetSelectionFeedbackEntry data = chatLogMessage.chatLogEntry as ChatLogFactionTargetSelectionFeedbackEntry;
+                        teammatePosition = data.teammatePosition;
+                        teammateRole = data.teammateRole;
+                        teammateTarget1 = data.teammateTargetingPosition1;
+                        teammateTarget2 = data.teammateTargetingPosition2;
+                        hasNecronomicon = data.bHasNecronomicon;
+                        isChangingTarget = data.bIsChangingTarget;
+                        isCancel = data.bIsCancel;
+                        menuChoiceType = data.menuChoiceType;
                     }
                     else
                     {
-                        Console.WriteLine($"Target {data.teammateTargetingPosition1}");
+                        GameSimulation gameSimulation = Service.Game.Sim.simulation;
+                        RoleCardObservation roleCardObservation = Service.Game.Sim.info.roleCardObservation;
+                        ChatLogTargetSelectionFeedbackEntry data = chatLogMessage.chatLogEntry as ChatLogTargetSelectionFeedbackEntry;
+                        switch (ModSettings.GetString("Show Own Actions"))
+                        {
+                            default:
+                            case "Never":
+                                return;
+                            case "Only as Factional Evil":
+                                PlayerIdentityData myIdentity = (PlayerIdentityData)gameSimulation.myIdentity;
+                                FactionType faction = myIdentity.faction;
+                                if (!(faction == FactionType.COVEN || faction == FactionType.APOCALYPSE || faction == FactionType.VAMPIRE || faction == FactionType.CURSED_SOUL))
+                                {
+                                    return;
+                                }
+                                break;
+                            case "Always":
+                                break;
+                        }
+                        teammatePosition = gameSimulation.myPosition;
+                        teammateRole = data.currentRole;
+                        teammateTarget1 = data.playerNumber1;
+                        teammateTarget2 = data.playerNumber2;
+                        hasNecronomicon = roleCardObservation.Data.hasNecronomicon;
+                        isChangingTarget = data.bIsChangingTarget;
+                        isCancel = data.bIsCancel;
+                        menuChoiceType = data.menuChoiceType;
                     }
-                    Console.WriteLine($"They {(data.bHasNecronomicon ? "have" : "don't have")} the necronomicon!");
+
+                    UIRoleData.UIRoleDataInstance roleData = null;
+                    Console.Write($"TOSTVI recieved message: player {teammatePosition + 1} (role {teammateRole}) has decided to ");
+                    if (isCancel)
+                    {
+                        Console.WriteLine($"Cancel their night ability");
+                    }
+                    else if (isChangingTarget)
+                    {
+                        Console.WriteLine($"Change their target to {teammateTarget1}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Target {teammateTarget1}");
+                    }
+                    Console.WriteLine($"They {(hasNecronomicon ? "have" : "don't have")} the necronomicon!");
                     if (panel == null)
                     {
                         panel = UnityEngine.Object.FindObjectOfType<RoleCardPanel>();
@@ -51,15 +102,15 @@ namespace TOSTeamVisitsIcons
                     }
                     if (panel != null)
                     {
-                        roleData = panel.roleData.roleDataList.Find((UIRoleData.UIRoleDataInstance d) => d.role == data.teammateRole);
+                        roleData = panel.roleData.roleDataList.Find((UIRoleData.UIRoleDataInstance d) => d.role == teammateRole);
                         if (roleData != null)
                         {
                             if (roleData.roleIcon != null)
                             {
                                 Console.WriteLine("TOSTVI all roledata grabed with success");
-                                if (data.bIsCancel)
+                                if (isCancel)
                                 {
-                                    Manager.Instance.CancelTarget(data.menuChoiceType, data.teammateRole, data.teammatePosition);
+                                    Manager.Instance.CancelTarget(menuChoiceType, teammateRole, teammatePosition);
                                 }
                                 else
                                 {
@@ -74,16 +125,16 @@ namespace TOSTeamVisitsIcons
                                     }
                                     if (ModSettings.GetString("Display Mode") == "Ability Icon")
                                     {
-                                        if (data.menuChoiceType == MenuChoiceType.NightAbility || (data.teammateRole == Role.ILLUSIONIST && data.menuChoiceType == MenuChoiceType.NightAbility2))
+                                        if (menuChoiceType == MenuChoiceType.NightAbility || (teammateRole == Role.ILLUSIONIST && menuChoiceType == MenuChoiceType.NightAbility2))
                                         {
                                             sprite = Manager.GetSprite(roleData, panel, 1);
                                         }
-                                        else if (data.menuChoiceType == MenuChoiceType.NightAbility2)
+                                        else if (menuChoiceType == MenuChoiceType.NightAbility2)
                                         {
                                             sprite = Manager.GetSprite(roleData, panel, 2);
                                         }
                                     }
-                                    if (data.bHasNecronomicon)
+                                    if (hasNecronomicon)
                                     {
                                         switch (ModSettings.GetString("Book Icon"))
                                         {
@@ -98,7 +149,7 @@ namespace TOSTeamVisitsIcons
                                                 break;
                                         }
                                     }
-                                    if (ModSettings.GetBool("Role Revival Icon") && (data.teammateRole == Role.NECROMANCER || data.teammateRole == Role.RETRIBUTIONIST) && data.menuChoiceType == MenuChoiceType.NightAbility2)
+                                    if (ModSettings.GetBool("Role Revival Icon") && (teammateRole == Role.NECROMANCER || teammateRole == Role.RETRIBUTIONIST) && menuChoiceType == MenuChoiceType.NightAbility2)
                                     {
                                         //Find who is been revived
                                         int target1 = -1;
@@ -109,7 +160,7 @@ namespace TOSTeamVisitsIcons
                                             counter++;
                                             for (int i = 0; i < imgs.Count; i++)
                                             {
-                                                if (imgs[i] != null && imgs[i].gameObject.name == $"{data.teammateRole}({data.teammatePosition})S")
+                                                if (imgs[i] != null && imgs[i].gameObject.name == $"{teammateRole}({teammatePosition})S")
                                                 {
                                                     target1 = counter;
                                                     break;
@@ -142,60 +193,60 @@ namespace TOSTeamVisitsIcons
                                         }
                                     }
                                     //Add 2nd ability icon no matter the option selected to avoid duplicated icons
-                                    else if ((data.teammateRole == Role.WITCH || data.teammateRole == Role.NECROMANCER || data.teammateRole == Role.RETRIBUTIONIST || data.teammateRole == Role.POISONER) && data.menuChoiceType == MenuChoiceType.NightAbility2)
+                                    else if ((teammateRole == Role.WITCH || teammateRole == Role.NECROMANCER || teammateRole == Role.RETRIBUTIONIST || teammateRole == Role.POISONER) && menuChoiceType == MenuChoiceType.NightAbility2)
                                     {
                                         Console.WriteLine("TOSTVI ability 2 case scenario");
                                         sprite = Manager.GetSprite(roleData, panel, 2);
                                     }
                                     //Always apply ability icon when it comes to special abilities
-                                    if (data.menuChoiceType == MenuChoiceType.SpecialAbility)
+                                    if (menuChoiceType == MenuChoiceType.SpecialAbility)
                                     {
                                         Console.WriteLine("TOSTVI special ability case scenario");
                                         sprite = Manager.GetSprite(roleData, panel, 3);
                                     }
                                     Console.WriteLine("TOSTVI starting the request");
-                                    switch (data.menuChoiceType)
+                                    switch (menuChoiceType)
                                     {
                                         case MenuChoiceType.NightAbility:
                                             if (sprite)
                                             {
-                                                Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility, data.teammateTargetingPosition1, sprite, data.teammateRole, data.teammatePosition);
+                                                Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility, teammateTarget1, sprite, teammateRole, teammatePosition);
                                             }
                                             if (!sprite && sprite2)
                                             {
-                                                Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility, data.teammateTargetingPosition1, sprite2, data.teammateRole, data.teammatePosition);
+                                                Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility, teammateTarget1, sprite2, teammateRole, teammatePosition);
                                             }
                                             else if (sprite2)
                                             {
-                                                Manager.Instance.AddTarget(MenuChoiceType.NightAbility, data.teammateTargetingPosition1, sprite2, data.teammateRole, data.teammatePosition);
+                                                Manager.Instance.AddTarget(MenuChoiceType.NightAbility, teammateTarget1, sprite2, teammateRole, teammatePosition);
                                             }
                                             break;
                                         case MenuChoiceType.NightAbility2:
                                             if (!sprite) break;
-                                            Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility2, data.teammateTargetingPosition2, sprite, data.teammateRole, data.teammatePosition);
+                                            Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility2, teammateTarget2, sprite, teammateRole, teammatePosition);
                                             break;
                                         case MenuChoiceType.SpecialAbility:
                                             if (!sprite) break;
                                             int teammateTargetingPosition = -1;
-                                            if (data.teammateTargetingPosition1 != -1)
+                                            if (teammateTarget1 != -1)
                                             {
-                                                teammateTargetingPosition = data.teammateTargetingPosition1;
+                                                teammateTargetingPosition = teammateTarget1;
                                             }
-                                            if (data.teammateTargetingPosition2 != -1)
+                                            if (teammateTarget2 != -1)
                                             {
-                                                teammateTargetingPosition = data.teammateTargetingPosition2;
+                                                teammateTargetingPosition = teammateTarget2;
                                             }
                                             switch (ModSettings.GetString("Special Ability Icon"))
                                             {
                                                 case "No Icon":
                                                     break;
                                                 case "Replace Icon":
-                                                    Manager.Instance.CancelTarget(MenuChoiceType.NightAbility2, data.teammateRole, data.teammatePosition);
-                                                    Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility, teammateTargetingPosition, sprite, data.teammateRole, data.teammatePosition);
+                                                    Manager.Instance.CancelTarget(MenuChoiceType.NightAbility2, teammateRole, teammatePosition);
+                                                    Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility, teammateTargetingPosition, sprite, teammateRole, teammatePosition);
                                                     break;
                                                 default:
                                                 case "Add Icon":
-                                                    Manager.Instance.ChangeTarget(MenuChoiceType.SpecialAbility, teammateTargetingPosition, sprite, data.teammateRole, data.teammatePosition);
+                                                    Manager.Instance.ChangeTarget(MenuChoiceType.SpecialAbility, teammateTargetingPosition, sprite, teammateRole, teammatePosition);
                                                     break;
                                             }
                                             break;

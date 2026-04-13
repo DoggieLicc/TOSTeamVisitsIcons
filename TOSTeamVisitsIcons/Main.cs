@@ -21,7 +21,7 @@ namespace TOSTeamVisitsIcons
                 DictionaryExtensions.SetValue(Settings.SettingsCache, "Role Revival Icon", ModSettings.GetBool("Role Revival Icon", "pokegustavo.FactionVisits"));
                 DictionaryExtensions.SetValue(Settings.SettingsCache, "Book Icon", ModSettings.GetBool("Book Icon", "pokegustavo.FactionVisits"));
                 DictionaryExtensions.SetValue(Settings.SettingsCache, "Special Ability Icon", ModSettings.GetBool("Special Ability Icon", "pokegustavo.FactionVisits"));
-
+                DictionaryExtensions.SetValue(Settings.SettingsCache, "Show Own Actions", ModSettings.GetBool("Show Own Actions", "pokegustavo.FactionVisits"));
             }
             catch (Exception ex)
             {
@@ -59,6 +59,10 @@ namespace TOSTeamVisitsIcons
             {
                 "Special Ability Icon",
                 "Add Icon"
+            },
+            {
+                "Show Own Actions",
+                "Never"
             }
         };
 
@@ -122,6 +126,26 @@ namespace TOSTeamVisitsIcons
             }
         }
 
+        public ModSettings.DropdownSetting ShowOwnAction 
+        {
+            get
+            {
+                ModSettings.DropdownSetting dropdownSetting = new ModSettings.DropdownSetting
+                {
+                    Name = "Show Own Actions",
+                    Description = "Dictates whether icons will be added for your own actions",
+                    Options = ShowOwnActionSettings,
+                    AvailableInGame = false,
+                    Available = true,
+                    OnChanged = delegate (string s)
+                    {
+                        DictionaryExtensions.SetValue(SettingsCache, "Show Own Actions", s);
+                    }
+                };
+                return dropdownSetting;
+            }
+        }
+
         public ModSettings.CheckboxSetting RevivalIcon 
         {
             get 
@@ -163,6 +187,13 @@ namespace TOSTeamVisitsIcons
             "Add Icon",
             "Replace Icon",
             "No Icon"
+        };
+
+        private readonly List<string> ShowOwnActionSettings = new List<string>(3)
+        {
+            "Never",
+            "Only as Factional Evil",
+            "Always"
         };
     }
 }
