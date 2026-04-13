@@ -66,28 +66,37 @@ namespace TOSTeamVisitsIcons
                                     Console.WriteLine("TOSTVI grabbing sprite");
                                     //By default use role icon
                                     Sprite sprite = Manager.GetSprite(roleData, panel, 0);
+                                    Sprite sprite2 = null;
                                     //Apply ability icon in case option is enabled
+                                    if (ModSettings.GetString("Display Mode") == "No Icon")
+                                    {
+                                        sprite = null;
+                                    }
                                     if (ModSettings.GetString("Display Mode") == "Ability Icon")
                                     {
                                         if (data.menuChoiceType == MenuChoiceType.NightAbility || (data.teammateRole == Role.ILLUSIONIST && data.menuChoiceType == MenuChoiceType.NightAbility2))
                                         {
-                                            if (data.bHasNecronomicon)
-                                            {
-                                                sprite = Service.Game.PlayerEffects.GetEffect(EffectType.NECRONOMICON).sprite;
-                                            }
-                                            else
-                                            {
-                                                sprite = Manager.GetSprite(roleData, panel, 1);
-                                            }
+                                            sprite = Manager.GetSprite(roleData, panel, 1);
                                         }
                                         else if (data.menuChoiceType == MenuChoiceType.NightAbility2)
                                         {
                                             sprite = Manager.GetSprite(roleData, panel, 2);
                                         }
                                     }
-                                    else if (data.bHasNecronomicon && ModSettings.GetString("Display Mode") == "Role + Book Icon")
+                                    if (data.bHasNecronomicon)
                                     {
-                                        sprite = Service.Game.PlayerEffects.GetEffect(EffectType.NECRONOMICON).sprite;
+                                        switch (ModSettings.GetString("Book Icon"))
+                                        {
+                                            case "No Icon":
+                                                break;
+                                            default:
+                                            case "Replace Icon":
+                                                sprite = Service.Game.PlayerEffects.GetEffect(EffectType.NECRONOMICON).sprite;
+                                                break;
+                                            case "Add Icon":
+                                                sprite2 = Service.Game.PlayerEffects.GetEffect(EffectType.NECRONOMICON).sprite;
+                                                break;
+                                        }
                                     }
                                     if (ModSettings.GetBool("Role Revival Icon") && (data.teammateRole == Role.NECROMANCER || data.teammateRole == Role.RETRIBUTIONIST) && data.menuChoiceType == MenuChoiceType.NightAbility2)
                                     {
@@ -148,19 +157,46 @@ namespace TOSTeamVisitsIcons
                                     switch (data.menuChoiceType)
                                     {
                                         case MenuChoiceType.NightAbility:
-                                            Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility, data.teammateTargetingPosition1, sprite, data.teammateRole, data.teammatePosition);
+                                            if (sprite)
+                                            {
+                                                Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility, data.teammateTargetingPosition1, sprite, data.teammateRole, data.teammatePosition);
+                                            }
+                                            if (!sprite && sprite2)
+                                            {
+                                                Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility, data.teammateTargetingPosition1, sprite2, data.teammateRole, data.teammatePosition);
+                                            }
+                                            else if (sprite2)
+                                            {
+                                                Manager.Instance.AddTarget(MenuChoiceType.NightAbility, data.teammateTargetingPosition1, sprite2, data.teammateRole, data.teammatePosition);
+                                            }
                                             break;
                                         case MenuChoiceType.NightAbility2:
+                                            if (!sprite) break;
                                             Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility2, data.teammateTargetingPosition2, sprite, data.teammateRole, data.teammatePosition);
                                             break;
                                         case MenuChoiceType.SpecialAbility:
+                                            if (!sprite) break;
+                                            int teammateTargetingPosition = -1;
                                             if (data.teammateTargetingPosition1 != -1)
                                             {
-                                                Manager.Instance.ChangeTarget(MenuChoiceType.SpecialAbility, data.teammateTargetingPosition1, sprite, data.teammateRole, data.teammatePosition);
+                                                teammateTargetingPosition = data.teammateTargetingPosition1;
                                             }
                                             if (data.teammateTargetingPosition2 != -1)
                                             {
-                                                Manager.Instance.ChangeTarget(MenuChoiceType.SpecialAbility, data.teammateTargetingPosition2, sprite, data.teammateRole, data.teammatePosition);
+                                                teammateTargetingPosition = data.teammateTargetingPosition2;
+                                            }
+                                            switch (ModSettings.GetString("Special Ability Icon"))
+                                            {
+                                                case "No Icon":
+                                                    break;
+                                                case "Replace Icon":
+                                                    Manager.Instance.CancelTarget(MenuChoiceType.NightAbility2, data.teammateRole, data.teammatePosition);
+                                                    Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility, teammateTargetingPosition, sprite, data.teammateRole, data.teammatePosition);
+                                                    break;
+                                                default:
+                                                case "Add Icon":
+                                                    Manager.Instance.ChangeTarget(MenuChoiceType.SpecialAbility, teammateTargetingPosition, sprite, data.teammateRole, data.teammatePosition);
+                                                    break;
                                             }
                                             break;
                                     }
@@ -306,10 +342,14 @@ namespace TOSTeamVisitsIcons
                     }
                     if (removed && i < imgs.Count)
                     {
-                        imgs[i].transform.localPosition -= new Vector3(32, 0, 0);
+                        for (int j = i; j < imgs.Count; j++)
+                        {
+                            imgs[j].transform.localPosition -= new Vector3(32, 0, 0);
+                        }
+                        i--;
                     }
+                    removed = false;
                 }
-                if (removed) break;
             }
         }
         internal void ChangeTarget(MenuChoiceType abilityId, int targetPlayer, Sprite sprite, Role role, int actorPlayer)

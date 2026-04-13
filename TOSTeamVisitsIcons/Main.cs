@@ -19,6 +19,9 @@ namespace TOSTeamVisitsIcons
             {
                 DictionaryExtensions.SetValue(Settings.SettingsCache, "Display Mode", ModSettings.GetString("Display Mode", "pokegustavo.FactionVisits"));
                 DictionaryExtensions.SetValue(Settings.SettingsCache, "Role Revival Icon", ModSettings.GetBool("Role Revival Icon", "pokegustavo.FactionVisits"));
+                DictionaryExtensions.SetValue(Settings.SettingsCache, "Book Icon", ModSettings.GetBool("Book Icon", "pokegustavo.FactionVisits"));
+                DictionaryExtensions.SetValue(Settings.SettingsCache, "Special Ability Icon", ModSettings.GetBool("Special Ability Icon", "pokegustavo.FactionVisits"));
+
             }
             catch (Exception ex)
             {
@@ -48,6 +51,14 @@ namespace TOSTeamVisitsIcons
             {
                 "Revival Icon",
                 false
+            },
+            {
+                "Book Icon",
+                "Replace Icon"
+            },
+            {
+                "Special Ability Icon",
+                "Add Icon"
             }
         };
 
@@ -58,14 +69,53 @@ namespace TOSTeamVisitsIcons
                 ModSettings.DropdownSetting dropdownSetting = new ModSettings.DropdownSetting
                 {
                     Name = "Display Mode",
-                    Description = "When showing the icons of your teammates you can choose to show the icon of their role (with some exceptions for roles that have 2 targets), " +
-                    "you can choose to show the ability icon (with book holder showing the book icon), or choose to combine role icon and book icon.",
+                    Description = "When showing the icons of your teammates you can choose to show the icon of their role (with some exceptions for roles that have 2 targets), or you can choose to show the ability icon",
                     Options = DisplaySettings,
                     AvailableInGame = false,
                     Available = true,
                     OnChanged = delegate (string s)
                     {
                         DictionaryExtensions.SetValue(SettingsCache, "Display Mode", s);
+                    }
+                };
+                return dropdownSetting;
+            }
+        }
+
+        public ModSettings.DropdownSetting BookIcon 
+        {
+            get
+            {
+                ModSettings.DropdownSetting dropdownSetting = new ModSettings.DropdownSetting
+                {
+                    Name = "Book Icon",
+                    Description = "Dictates whether the Necronomicon icon should be disabled, replace the role/ability icon, or be added next to role/ability icon",
+                    Options = BookIconSettings,
+                    AvailableInGame = false,
+                    Available = true,
+                    OnChanged = delegate (string s)
+                    {
+                        DictionaryExtensions.SetValue(SettingsCache, "Book Icon", s);
+                    }
+                };
+                return dropdownSetting;
+            }
+        }
+
+        public ModSettings.DropdownSetting SpecialAbilityIcon 
+        {
+            get
+            {
+                ModSettings.DropdownSetting dropdownSetting = new ModSettings.DropdownSetting
+                {
+                    Name = "Special Ability Icon",
+                    Description = "Dictates whether the special ability icon should be disabled, replace the role/ability icon, or be added next to role/ability icon",
+                    Options = SpecialAbilitySettings,
+                    AvailableInGame = false,
+                    Available = true,
+                    OnChanged = delegate (string s)
+                    {
+                        DictionaryExtensions.SetValue(SettingsCache, "Special Ability Icon", s);
                     }
                 };
                 return dropdownSetting;
@@ -98,7 +148,21 @@ namespace TOSTeamVisitsIcons
         {
             "Role Icon",
             "Ability Icon",
-            "Role + Book Icon"
+            "No Icon"
+        };
+
+        private readonly List<string> BookIconSettings = new List<string>(3)
+        {
+            "Replace Icon",
+            "Add Icon",
+            "No Icon"
+        };
+
+        private readonly List<string> SpecialAbilitySettings = new List<string>(3)
+        {
+            "Add Icon",
+            "Replace Icon",
+            "No Icon"
         };
     }
 }
