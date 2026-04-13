@@ -63,6 +63,10 @@ namespace TOSTeamVisitsIcons
             {
                 "Show Own Actions",
                 "Never"
+            },
+            {
+                "Day Ability Icons",
+                true
             }
         };
 
@@ -161,6 +165,27 @@ namespace TOSTeamVisitsIcons
                     OnChanged = delegate (bool b)
                     {
                         DictionaryExtensions.SetValue(SettingsCache, "Role Revival Icon", b);
+                    }
+                };
+                return checkboxSetting;
+
+            }
+        }
+
+        public ModSettings.CheckboxSetting DayAbilityIcons 
+        {
+            get 
+            {
+                ModSettings.CheckboxSetting checkboxSetting = new ModSettings.CheckboxSetting 
+                {
+                    Name = "Day Ability Icons",
+                    Description = "If enabled, icons will be added for your faction member's day abilities (Jailing, indoc, etc.)",
+                    DefaultValue = true,
+                    AvailableInGame = false,
+                    Available = true,
+                    OnChanged = delegate (bool b)
+                    {
+                        DictionaryExtensions.SetValue(SettingsCache, "Day Ability Icons", b);
                     }
                 };
                 return checkboxSetting;

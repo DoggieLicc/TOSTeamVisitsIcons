@@ -24,7 +24,7 @@ namespace TOSTeamVisitsIcons
         static RoleCardPanel panel = null;
         internal static void HandleMessages(ChatLogMessage chatLogMessage)
         {
-            if (Service.Game.Sim.info.gameInfo.Data.playPhase == PlayPhase.NIGHT && Service.Game.Sim.info.gameInfo.Data.gamePhase == GamePhase.PLAY && (chatLogMessage.chatLogEntry is ChatLogFactionTargetSelectionFeedbackEntry || chatLogMessage.chatLogEntry is ChatLogTargetSelectionFeedbackEntry))
+            if (Service.Game.Sim.info.gameInfo.Data.gamePhase == GamePhase.PLAY && (chatLogMessage.chatLogEntry is ChatLogFactionTargetSelectionFeedbackEntry || chatLogMessage.chatLogEntry is ChatLogTargetSelectionFeedbackEntry))
             {
                 try
                 {
@@ -80,6 +80,15 @@ namespace TOSTeamVisitsIcons
                         menuChoiceType = data.menuChoiceType;
                     }
 
+                    //Only care about non-instant day abilites
+                    if (Service.Game.Sim.info.gameInfo.Data.playPhase != PlayPhase.NIGHT)
+                    {
+                        if (!ModSettings.GetBool("Day Ability Icons") || !(teammateRole == Role.JAILOR || teammateRole == Role.ADMIRER || teammateRole == Role.CORONER || teammateRole == Role.SOCIALITE || teammateRole == Role.CULTIST))
+                        {
+                            return;
+                        }
+                    }
+
                     UIRoleData.UIRoleDataInstance roleData = null;
                     Console.Write($"TOSTVI recieved message: player {teammatePosition + 1} (role {teammateRole}) has decided to ");
                     if (isCancel)
@@ -125,13 +134,18 @@ namespace TOSTeamVisitsIcons
                                     }
                                     if (ModSettings.GetString("Display Mode") == "Ability Icon")
                                     {
-                                        if (menuChoiceType == MenuChoiceType.NightAbility || (teammateRole == Role.ILLUSIONIST && menuChoiceType == MenuChoiceType.NightAbility2))
+                                        if (menuChoiceType == MenuChoiceType.NightAbility || ((teammateRole == Role.ILLUSIONIST || teammateRole == Role.JAILOR) && menuChoiceType == MenuChoiceType.NightAbility2))
                                         {
                                             sprite = Manager.GetSprite(roleData, panel, 1);
                                         }
                                         else if (menuChoiceType == MenuChoiceType.NightAbility2)
                                         {
                                             sprite = Manager.GetSprite(roleData, panel, 2);
+                                            //Failsafe
+                                            if (!sprite)
+                                            {
+                                                sprite = Manager.GetSprite(roleData, panel, 1);
+                                            }
                                         }
                                     }
                                     if (hasNecronomicon)
@@ -227,7 +241,8 @@ namespace TOSTeamVisitsIcons
                                             break;
                                         case MenuChoiceType.SpecialAbility:
                                             if (!sprite) break;
-                                            int teammateTargetingPosition = -1;
+                                            //If special ability with no targets, just put it on themselves
+                                            int teammateTargetingPosition = teammatePosition;
                                             if (teammateTarget1 != -1)
                                             {
                                                 teammateTargetingPosition = teammateTarget1;
@@ -235,6 +250,10 @@ namespace TOSTeamVisitsIcons
                                             if (teammateTarget2 != -1)
                                             {
                                                 teammateTargetingPosition = teammateTarget2;
+                                            }
+                                            if (teammateRole == Role.DOOMSAYER)
+                                            {
+                                                teammateTargetingPosition = teammatePosition;
                                             }
                                             switch (ModSettings.GetString("Special Ability Icon"))
                                             {
@@ -287,7 +306,7 @@ namespace TOSTeamVisitsIcons
                 Console.WriteLine("TOSTVI removing hook");
                 Service.Game.Sim.simulation.incomingChatLogMessage.OnChanged -= Interpreter.HandleMessages;
             }
-            if (gameInfoObservation.Data.gamePhase == GamePhase.PLAY && gameInfoObservation.Data.playPhase != PlayPhase.NIGHT)
+            if (gameInfoObservation.Data.gamePhase == GamePhase.PLAY && (gameInfoObservation.Data.playPhase == PlayPhase.NIGHT || gameInfoObservation.Data.playPhase == PlayPhase.NIGHT_WRAP_UP))
             {
                 Console.WriteLine($"TOSTVI Requesting icons clear because of playphase: " + gameInfoObservation.Data.playPhase);
                 Manager.Instance.Clear();
