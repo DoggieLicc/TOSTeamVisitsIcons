@@ -32,6 +32,7 @@ namespace TOSTeamVisitsIcons
                     Role teammateRole;
                     int teammateTarget1;
                     int teammateTarget2;
+                    Role? teammateTargetRole;
                     bool hasNecronomicon;
                     bool isChangingTarget;
                     bool isCancel;
@@ -44,6 +45,7 @@ namespace TOSTeamVisitsIcons
                         teammateRole = data.teammateRole;
                         teammateTarget1 = data.teammateTargetingPosition1;
                         teammateTarget2 = data.teammateTargetingPosition2;
+                        teammateTargetRole = data.teammatesTargetRole;
                         hasNecronomicon = data.bHasNecronomicon;
                         isChangingTarget = data.bIsChangingTarget;
                         isCancel = data.bIsCancel;
@@ -74,6 +76,7 @@ namespace TOSTeamVisitsIcons
                         teammateRole = data.currentRole;
                         teammateTarget1 = data.playerNumber1;
                         teammateTarget2 = data.playerNumber2;
+                        teammateTargetRole = data.targetRoleId;
                         hasNecronomicon = roleCardObservation.Data.hasNecronomicon;
                         isChangingTarget = data.bIsChangingTarget;
                         isCancel = data.bIsCancel;
@@ -250,6 +253,19 @@ namespace TOSTeamVisitsIcons
                                             if (teammateTarget2 != -1)
                                             {
                                                 teammateTargetingPosition = teammateTarget2;
+                                            }
+                                            //Will add oracle icon to all known aegis targets
+                                            if (teammateTargetingPosition == teammatePosition && teammateTargetRole != null && ModSettings.GetString("Special Ability Icon") != "No Icon")
+                                            {
+                                                Manager.Instance.CancelTarget(MenuChoiceType.SpecialAbility, teammateRole, teammatePosition);
+                                                foreach (TosAbilityPanelListItem player in Manager.Instance.Panel.playerListPlayers)
+                                                {
+                                                    if (player.playerRole == teammateTargetRole)
+                                                    {
+                                                        Manager.Instance.AddTarget(MenuChoiceType.SpecialAbility, player.characterPosition, sprite, teammateRole, teammatePosition);
+                                                    }
+                                                }
+                                                return;
                                             }
                                             switch (ModSettings.GetString("Special Ability Icon"))
                                             {
