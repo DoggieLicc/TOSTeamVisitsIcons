@@ -194,20 +194,31 @@ namespace TOSTeamVisitsIcons
                                             try
                                             {
                                                 int summonTarget = summonTargets[teammatePosition];
-                                                Role revivalRole = Manager.Instance.Panel.playerListPlayers[summonTarget].playerRole;
+                                                List<KillRecord> killRecords = (List<KillRecord>)Service.Game.Sim.simulation.killRecords;
+                                                KillRecord killRecord = killRecords.Find((KillRecord k) => k.playerId == summonTarget);
+                                                Role revivalRole = killRecord.playerRole;
+                                                //Check if theres hidden info
+                                                if (killRecord.hiddenPlayerRole != Role.NONE && killRecord.hiddenPlayerRole != Role.HIDDEN)
+                                                {
+                                                    revivalRole = killRecord.hiddenPlayerRole;
+                                                }
+                                                Console.WriteLine("TOSTVIRI revived player role: " + revivalRole);
                                                 //Check if is valid know role
                                                 if (revivalRole != Role.NONE && revivalRole != Role.STONED && revivalRole != Role.HIDDEN)
                                                 {
                                                     UIRoleData.UIRoleDataInstance revivalRoleData = panel.roleData.roleDataList.Find((UIRoleData.UIRoleDataInstance d) => d.role == revivalRole);
-                                                    if (revivalRoleData != null && revivalRoleData.roleIcon != null)
+                                                    FactionType revivedFaction = killRecord.playerFaction;
+                                                    if (killRecord.hiddenPlayerFaction != FactionType.NONE && killRecord.hiddenPlayerFaction != FactionType.UNKNOWN)
                                                     {
-                                                        sprite = sprite = Manager.GetSprite(revivalRoleData, Manager.Instance.Panel.playerListPlayers[summonTarget].playerFaction, 0);
+                                                        revivedFaction = killRecord.hiddenPlayerFaction;
                                                     }
-                                                    else 
+                                                    if (revivedFaction == FactionType.UNKNOWN)
                                                     {
-                                                        Console.WriteLine("TOSTVIRI revival role icon not found");
-                                                        sprite = Manager.GetSprite(roleData, panel, 2);
+                                                        Console.WriteLine("TOSTVIRI revived player faction is stoned or hidden, setting to none");
+                                                        revivedFaction = FactionType.NONE;
                                                     }
+                                                    Console.WriteLine("TOSTVIRI revived player faction: " + revivedFaction);
+                                                    sprite = Manager.GetSprite(revivalRoleData, revivedFaction, 0);
                                                 }
                                                 else
                                                 {
