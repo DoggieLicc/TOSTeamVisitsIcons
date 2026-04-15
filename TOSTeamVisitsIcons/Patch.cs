@@ -148,6 +148,7 @@ namespace TOSTeamVisitsIcons
                                             if (!sprite)
                                             {
                                                 sprite = Manager.GetSprite(roleData, panel, 1);
+                                                Console.WriteLine("TOSTVI DM ability 1 case scenario");
                                             }
                                             //Fail-Failsafe
                                             if (!sprite)
