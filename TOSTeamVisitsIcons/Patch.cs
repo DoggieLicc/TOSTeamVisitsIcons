@@ -200,7 +200,7 @@ namespace TOSTeamVisitsIcons
                                                     UIRoleData.UIRoleDataInstance revivalRoleData = panel.roleData.roleDataList.Find((UIRoleData.UIRoleDataInstance d) => d.role == revivalRole);
                                                     if (revivalRoleData != null && revivalRoleData.roleIcon != null)
                                                     {
-                                                        sprite = Manager.GetSprite(revivalRoleData, panel, 0);
+                                                        sprite = sprite = Manager.GetSprite(revivalRoleData, Manager.Instance.Panel.playerListPlayers[summonTarget].playerFaction, 0);
                                                     }
                                                     else 
                                                     {
@@ -565,13 +565,18 @@ namespace TOSTeamVisitsIcons
             Interpreter.summonTargets.Clear();
         }
 
-        internal static Sprite GetSprite(UIRoleData.UIRoleDataInstance instance, RoleCardPanel panel, int ability = 0)
+
+        internal static Sprite GetSprite(UIRoleData.UIRoleDataInstance instance, RoleCardPanel panel, int ability = 0) 
+        {
+            return GetSprite(instance, panel.CurrentFaction, ability);
+        }
+        internal static Sprite GetSprite(UIRoleData.UIRoleDataInstance instance, FactionType faction, int ability = 0)
         {
             Sprite sprite;
             if (ModStates.IsEnabled("alchlcsystm.fancy.ui") && Settings.fancyUI != null)
             {
                 //Get sprite from Fancy UI if found
-                sprite = GetFancyUISprite(instance.role, panel.CurrentFaction, ability);
+                sprite = GetFancyUISprite(instance.role, faction, ability);
                 if (sprite != ((Sprite)Settings.fancyUI.GetType("FancyUI.Assets.FancyAssetManager").GetProperty("Blank", BindingFlags.Static | BindingFlags.Public).GetValue(null))) return sprite;
             }
             //Get vannila icons
