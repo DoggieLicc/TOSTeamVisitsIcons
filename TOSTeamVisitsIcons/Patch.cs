@@ -637,6 +637,12 @@ namespace TOSTeamVisitsIcons
             string FactionName = (string)facnyuiutils.GetMethod("FactionName", BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(FactionType), Settings.fancyUI.GetType("FancyUI.GameModType"), typeof(bool), typeof(bool) }, null).Invoke(null, new object[] { faction, null, true, false });
             //Get sprite
             Sprite sprite = (Sprite)fancyuiassman.GetMethod("GetSprite", BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(string), typeof(bool), typeof(string), typeof(string), typeof(bool) }, null).Invoke(null, new object[] { RoleName, true, FactionName, null, false });
+            //Make a 2nd check for ability 1 due to 2 options of file name
+            if (ability == 1 && sprite == ((Sprite)Settings.fancyUI.GetType("FancyUI.Assets.FancyAssetManager").GetProperty("Blank", BindingFlags.Static | BindingFlags.Public).GetValue(null))) 
+            {
+                RoleName = RoleName.Remove(RoleName.IndexOf("_1"));
+                sprite = (Sprite)fancyuiassman.GetMethod("GetSprite", BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(string), typeof(bool), typeof(string), typeof(string), typeof(bool) }, null).Invoke(null, new object[] { RoleName, true, FactionName, null, false });
+            }
             return sprite;
         }
     }
