@@ -345,6 +345,12 @@ namespace TOSTeamVisitsIcons
                                     Manager.Instance.AddTarget(MenuChoiceType.SpecialAbility, playerEffectPos, sprite, teammateRole, teammatePosition);
                                 }
                             }
+                            //If they're using book to ignite, put book icon on themselves
+                            if (hasNecronomicon && ModSettings.GetString("Book Icon") != "No Icon")
+                            {
+                                Sprite bookSprite = Service.Game.PlayerEffects.GetEffect(EffectType.NECRONOMICON).sprite;
+                                Manager.Instance.AddTarget(MenuChoiceType.SpecialAbility, teammatePosition, bookSprite, teammateRole, teammatePosition);
+                            }
                             return;
                         }
                         switch (ModSettings.GetString("Special Ability Icon"))
