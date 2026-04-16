@@ -22,6 +22,26 @@ namespace TOSTeamVisitsIcons
     {
         static RoleCardPanel panel = null;
         public static Dictionary<int, int> summonTargets = new Dictionary<int, int>();
+        //Roles whose regular abiility gets fully replaced when holding Necronomicon (Kinda guessing here)
+        //As opposed to roles whose regular ability is the same but with an attack (Like ench+attack)
+        //or roles whos book ability is seperated from their regular ability (baker, monarch)
+        public static List<Role> BookReplacesAbility = new List<Role> {
+            Role.ILLUSIONIST,
+            Role.BODYGUARD,
+            Role.CATALYST,
+            Role.CLERIC,
+            Role.CRUSADER,
+            Role.PILGRIM, //no ability, just put here incase
+            Role.SOCIALITE,
+            Role.TRAPPER,
+            Role.TRICKSTER, //technically trick with book just unleashes a basic attack, but basically the same thing
+            Role.COVENITE,
+            Role.SERIALKILLER, // These roles need book to attack on cov team, so just use book icon for them if they wield book
+            Role.SHROUD,
+            Role.BERSERKER,
+            Role.WEREWOLF //Attack is abil1, scent is abil2, should work
+            // Arsonist is a special case, handle later
+        };
         internal static void HandleMessages(ChatLogMessage chatLogMessage)
         {
             if (Service.Game.Sim.info.gameInfo.Data.gamePhase == GamePhase.PLAY && (chatLogMessage.chatLogEntry is ChatLogFactionTargetSelectionFeedbackEntry || chatLogMessage.chatLogEntry is ChatLogTargetSelectionFeedbackEntry))
@@ -123,6 +143,10 @@ namespace TOSTeamVisitsIcons
                                 if (isCancel)
                                 {
                                     Manager.Instance.CancelTarget(menuChoiceType, teammateRole, teammatePosition);
+                                    if (menuChoiceType == MenuChoiceType.SpecialAbility && (teammateRole == Role.NECROMANCER || teammateRole == Role.RETRIBUTIONIST))
+                                    {
+                                        Manager.Instance.CancelTarget(MenuChoiceType.NightAbility2, teammateRole, teammatePosition);
+                                    }
                                 }
                                 else
                                 {
@@ -168,13 +192,26 @@ namespace TOSTeamVisitsIcons
                                         switch (ModSettings.GetString("Book Icon"))
                                         {
                                             case "No Icon":
+                                                //If their role's normal ability gets deleted with book, remove original sprite
+                                                if (BookReplacesAbility.Contains(teammateRole))
+                                                {
+                                                    sprite = null;
+                                                }
                                                 break;
                                             default:
                                             case "Replace Icon":
                                                 sprite = Service.Game.PlayerEffects.GetEffect(EffectType.NECRONOMICON).sprite;
                                                 break;
                                             case "Add Icon":
-                                                sprite2 = Service.Game.PlayerEffects.GetEffect(EffectType.NECRONOMICON).sprite;
+                                                //If their role's normal ability gets deleted with book, replace first sprite anyway
+                                                if (BookReplacesAbility.Contains(teammateRole))
+                                                {
+                                                    sprite = Service.Game.PlayerEffects.GetEffect(EffectType.NECRONOMICON).sprite;
+                                                }
+                                                else
+                                                {
+                                                    sprite2 = Service.Game.PlayerEffects.GetEffect(EffectType.NECRONOMICON).sprite;
+                                                }
                                                 break;
                                         }
                                     }
@@ -190,7 +227,8 @@ namespace TOSTeamVisitsIcons
                                             }
                                             summonTargets.Add(teammatePosition, teammateTarget1);
                                         }
-                                        else {
+                                        else if (menuChoiceType == MenuChoiceType.NightAbility2)
+                                        {
                                             try
                                             {
                                                 int summonTarget = summonTargets[teammatePosition];
