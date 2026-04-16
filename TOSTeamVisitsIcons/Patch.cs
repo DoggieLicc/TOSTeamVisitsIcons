@@ -558,6 +558,10 @@ namespace TOSTeamVisitsIcons
             Console.WriteLine("TOSTVI requesting cancels for the change of target");
             switch (role)
             {
+                case Role.BODYGUARD:
+                case Role.CLERIC:
+                case Role.TRICKSTER:
+                case Role.ARSONIST:
                 case Role.POTIONMASTER:
                 case Role.RITUALIST:
                 case Role.VOODOOMASTER:
@@ -565,6 +569,7 @@ namespace TOSTeamVisitsIcons
                     CancelTarget(MenuChoiceType.NightAbility2, role, actorPlayer);
                     CancelTarget(MenuChoiceType.SpecialAbility, role, actorPlayer);
                     break;
+                case Role.RETRIBUTIONIST:
                 case Role.NECROMANCER:
                     if (abilityId == MenuChoiceType.NightAbility)
                     {
@@ -578,6 +583,9 @@ namespace TOSTeamVisitsIcons
                         CancelTarget(abilityId, role, actorPlayer);
                     }
                     break;
+                case Role.MONARCH:
+                case Role.BAKER:
+                case Role.PIRATE:
                 case Role.ILLUSIONIST:
                 case Role.POISONER:
                 case Role.MEDUSA:
