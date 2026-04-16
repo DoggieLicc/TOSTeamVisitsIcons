@@ -5,6 +5,7 @@ using System.Data;
 using System.Reflection;
 using Game.Interface;
 using Game.Simulation;
+using Game.Services;
 using HarmonyLib;
 using Server.Shared.Info;
 using Server.Shared.Messages;
@@ -326,6 +327,22 @@ namespace TOSTeamVisitsIcons
                                 if (player.playerRole == teammateTargetRole)
                                 {
                                     Manager.Instance.AddTarget(MenuChoiceType.SpecialAbility, player.characterPosition, sprite, teammateRole, teammatePosition);
+                                }
+                            }
+                            return;
+                        }
+                        //Add Arsonist icon to all known doused targets
+                        if (teammateRole == Role.ARSONIST && ModSettings.GetString("Special Ability Icon") != "No Icon")
+                        {
+                            Manager.Instance.CancelTarget(MenuChoiceType.NightAbility, teammateRole, teammatePosition);
+                            List<PlayerEffectsObservation> playerEffectsObs = Service.Game.Sim.info.playerEffects;
+                            foreach (PlayerEffectsObservation playerEffectOb in playerEffectsObs)
+                            {
+                                int playerEffectPos = playerEffectOb.Data.playerPosition;
+                                List<EffectType> effects = playerEffectOb.Data.effects;
+                                if (effects.Contains(EffectType.DOUSED))
+                                {
+                                    Manager.Instance.AddTarget(MenuChoiceType.SpecialAbility, playerEffectPos, sprite, teammateRole, teammatePosition);
                                 }
                             }
                             return;
