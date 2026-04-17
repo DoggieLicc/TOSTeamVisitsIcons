@@ -45,3 +45,11 @@ Allows you to enable the ability to add icons for your own actions
 * **Never**: Never add icons for your own actions
 * **Only as Factional Evil**: Only add icons when you play as a factional evil (Coven, Apocalypse, Vampire, Cursed Souls)
 * **Always**: Always add icons for your own actions
+
+### Handle Overcharges
+
+Allows you to enable the ability for the mod to try handle overcharged teammates properly.
+
+* **Only Myself**: Only handle when you're overcharged
+* **All Teammates (EXPERIMENTAL)**: Handle all teammate's overcharges. Experimental, as there's no 100% way to tell if someone else is actually overcharged
+* **Never**: Never handle overcharges
