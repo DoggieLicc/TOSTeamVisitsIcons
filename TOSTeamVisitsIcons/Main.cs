@@ -22,6 +22,7 @@ namespace TOSTeamVisitsIcons
                 DictionaryExtensions.SetValue(Settings.SettingsCache, "Book Icon", ModSettings.GetBool("Book Icon", "pokegustavo.FactionVisits"));
                 DictionaryExtensions.SetValue(Settings.SettingsCache, "Special Ability Icon", ModSettings.GetBool("Special Ability Icon", "pokegustavo.FactionVisits"));
                 DictionaryExtensions.SetValue(Settings.SettingsCache, "Show Own Actions", ModSettings.GetBool("Show Own Actions", "pokegustavo.FactionVisits"));
+                DictionaryExtensions.SetValue(Settings.SettingsCache, "Handle Overcharged", ModSettings.GetBool("Handle Overcharged", "pokegustavo.FactionVisits"));
             }
             catch (Exception ex)
             {
@@ -67,6 +68,10 @@ namespace TOSTeamVisitsIcons
             {
                 "Day Ability Icons",
                 true
+            },
+            {
+                "Handle Overcharged",
+                false
             }
         };
 
@@ -186,6 +191,27 @@ namespace TOSTeamVisitsIcons
                     OnChanged = delegate (bool b)
                     {
                         DictionaryExtensions.SetValue(SettingsCache, "Day Ability Icons", b);
+                    }
+                };
+                return checkboxSetting;
+
+            }
+        }
+
+        public ModSettings.CheckboxSetting HandleOvercharged 
+        {
+            get 
+            {
+                ModSettings.CheckboxSetting checkboxSetting = new ModSettings.CheckboxSetting 
+                {
+                    Name = "Handle Overcharged",
+                    Description = "If enabled, the mod will try to handle overcharged teammate's properly. \n\nExperimental! There's a chance it thinks someone's overcharged when they aren't, due to tos2 sending false info sometimes",
+                    DefaultValue = false,
+                    AvailableInGame = false,
+                    Available = true,
+                    OnChanged = delegate (bool b)
+                    {
+                        DictionaryExtensions.SetValue(SettingsCache, "Handle Overcharged", b);
                     }
                 };
                 return checkboxSetting;

@@ -103,6 +103,22 @@ namespace TOSTeamVisitsIcons
                     menuChoiceType = data.menuChoiceType;
                 }
 
+                float remainingTime = (float)(Service.Game.Sim.simulation.playPhaseState.Data.playPhaseTime - DateTime.UtcNow).TotalSeconds;
+                Console.WriteLine("TOSTVI - Remaining time: " + remainingTime);
+                if (Service.Game.Sim.info.gameInfo.Data.playPhase == PlayPhase.NIGHT && !isCancel && !isChangingTarget && remainingTime <= 19f && Manager.Instance.handleOvercharged && Manager.Instance.overchargedTeammate == -1)
+                {
+                    int tgc1 = Manager.Instance.TargetsCount(MenuChoiceType.NightAbility, teammateRole, teammatePosition);
+                    int tgc2 = Manager.Instance.TargetsCount(MenuChoiceType.NightAbility2, teammateRole, teammatePosition);
+                    int tgcS = Manager.Instance.TargetsCount(MenuChoiceType.SpecialAbility, teammateRole, teammatePosition);
+                    bool isToggleableSpecialAbiility = (menuChoiceType == MenuChoiceType.SpecialAbility && (teammateRole == Role.SHROUD || teammateRole == Role.SERIALKILLER || teammateRole == Role.ENCHANTER || teammateRole == Role.VOODOOMASTER));
+                    bool isSecondChoiceAbility = (menuChoiceType == MenuChoiceType.NightAbility2 && (teammateRole == Role.RETRIBUTIONIST || teammateRole == Role.NECROMANCER || teammateRole == Role.SEER || teammateRole == Role.WITCH || teammateRole == Role.WAR));
+                    if ((tgc1 + tgc2 + tgcS) != 0 && !isToggleableSpecialAbiility && !isSecondChoiceAbility)
+                    {
+                        Console.WriteLine("TOSTVI - Setting " + teammatePosition + " as overcharged teammate");
+                        Manager.Instance.overchargedTeammate = teammatePosition;
+                    }
+                }
+
                 //Only care about non-instant day abilites
                 if (Service.Game.Sim.info.gameInfo.Data.playPhase != PlayPhase.NIGHT)
                 {
@@ -421,6 +437,12 @@ namespace TOSTeamVisitsIcons
                     clearedNightIcons = true;
                 }
                 clearedDayIcons = false;
+                Manager.Instance.overchargedTeammate = -1;
+            }
+            if (gameInfoObservation.Data.gamePhase == GamePhase.PLAY && gameInfoObservation.Data.playPhase == PlayPhase.FIRST_DISCUSSION)
+            {
+                Manager.Instance.setHandleOvercharged();
+                Console.WriteLine("TOSTVI do we handle overcharges?: " + Manager.Instance.handleOvercharged);
             }
         }
     }
@@ -428,6 +450,9 @@ namespace TOSTeamVisitsIcons
     internal class Manager
     {
         internal Dictionary<int, List<Image>> visits = new Dictionary<int, List<Image>>();
+        internal Dictionary<int, List<Image>> ocVisits = new Dictionary<int, List<Image>>();
+        public bool handleOvercharged = false;
+        public int overchargedTeammate = -1;  //Can only handle 1 overcharged teammate at a time due to game limits
         TosAbilityPanel _panel = null;
         static Manager _instance = null;
         internal static Manager Instance
@@ -453,9 +478,11 @@ namespace TOSTeamVisitsIcons
                         {
                             _panel = pan;
                             visits = new Dictionary<int, List<Image>>();
+                            ocVisits = new Dictionary<int, List<Image>>();
                             for (int i = 0; i < pan.playerListPlayers.Count; i++)
                             {
                                 visits.Add(i, new List<Image>());
+                                ocVisits.Add(i, new List<Image>());
                             }
                             break;
                         }
@@ -463,6 +490,48 @@ namespace TOSTeamVisitsIcons
                 }
                 return _panel;
             }
+        }
+        internal bool canOverchargeHappen()
+        {
+            if (!ModSettings.GetBool("Handle Overcharged")) return false;
+            List<Role> modifiers = Service.Game.Sim.simulation.roleDeckBuilder.Data.modifierCards;
+            if (modifiers.Contains(Role.ALL_OUTLIERS)) return true;
+            List<RoleDeckSlot> roleDeckSlots = Service.Game.Sim.simulation.roleDeckBuilder.Data.roleDeckSlots;
+            foreach(RoleDeckSlot roleDeckSlot in roleDeckSlots)
+            {
+                if (roleDeckSlot.Role1 == Role.CATALYST || roleDeckSlot.Role2 == Role.CATALYST) return true;
+            }
+            return false;
+        }
+        internal void setHandleOvercharged()
+        {
+            handleOvercharged = canOverchargeHappen();
+        }
+        internal Dictionary<int, List<Image>> getVisits(int teammatePosition)
+        {
+            if (!handleOvercharged) return visits;
+            if (overchargedTeammate == teammatePosition){
+                Console.WriteLine("TOSTVI getting overcharged Visits info for " + teammatePosition);
+                return ocVisits;
+            }
+            return visits;
+        }
+        internal Dictionary<int, List<Image>> getAllVisits()
+        {
+            Dictionary<int, List<Image>> allVisits = new Dictionary<int, List<Image>>();
+            for (int i = 0; i < Panel.playerListPlayers.Count; i++)
+            {
+                allVisits.Add(i, new List<Image>());
+                foreach (Image img in visits[i])
+                {
+                    allVisits[i].Add(img);
+                }
+                foreach (Image img in ocVisits[i])
+                {
+                    allVisits[i].Add(img);
+                }
+            }
+            return allVisits;
         }
         internal void AddTarget(MenuChoiceType abilityId, int targetPlayer, Sprite sprite, Role role, int actorPlayer)
         {
@@ -491,8 +560,8 @@ namespace TOSTeamVisitsIcons
             Console.WriteLine("TOSTVI adding icon " + image.name);
             image.transform.localScale = Vector3.one;
             image.sprite = sprite;
-            visits[targetPlayer].Add(image);
-            image.transform.localPosition = new Vector3(80 + 32 * (visits[targetPlayer].Count - 1), 0, 0);
+            getVisits(targetPlayer)[targetPlayer].Add(image);
+            image.transform.localPosition = new Vector3(80 + 32 * (getAllVisits()[targetPlayer].Count - 1), 0, 0);
             image.gameObject.SetActive(true);
         }
         internal int TargetsCount(MenuChoiceType abilityId, Role role, int actorPlayer)
@@ -508,7 +577,7 @@ namespace TOSTeamVisitsIcons
                 roleName += "S";
             }
             Console.WriteLine("TOSTVID count target: " + roleName);
-            foreach (List<Image> imgs in visits.Values)
+            foreach (List<Image> imgs in getVisits(actorPlayer).Values)
             {
                 for (int i = 0; i < imgs.Count; i++)
                 {
@@ -534,7 +603,7 @@ namespace TOSTeamVisitsIcons
                 roleName += "S";
             }
             Console.WriteLine("TOSTVID removal target: " + roleName);
-            foreach (List<Image> imgs in visits.Values)
+            foreach (List<Image> imgs in getVisits(actorPlayer).Values)
             {
                 for (int i = 0; i < imgs.Count; i++)
                 {
@@ -620,6 +689,21 @@ namespace TOSTeamVisitsIcons
         {
             //End of night full sprite clear
             foreach (List<Image> imgs in visits.Values)
+            {
+                for (int i = imgs.Count - 1; i >= 0; i--)
+                {
+                    Image temp = imgs[i];
+                    imgs.RemoveAt(i);
+                    if (temp != null && temp.gameObject != null)
+                    {
+                        Console.WriteLine("TOSTIV deleting icon " + temp.gameObject.name);
+                        temp.gameObject.SetActive(true);
+                        UnityEngine.Object.DestroyImmediate(temp.gameObject);
+
+                    }
+                }
+            }
+            foreach (List<Image> imgs in ocVisits.Values)
             {
                 for (int i = imgs.Count - 1; i >= 0; i--)
                 {
