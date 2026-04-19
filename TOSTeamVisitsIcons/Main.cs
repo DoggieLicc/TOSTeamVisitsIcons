@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 
-namespace TOSTeamVisitsIcons
+namespace FactionVisits
 {
     [Mod.SalemMod]
     public class Main
@@ -17,12 +17,12 @@ namespace TOSTeamVisitsIcons
             Console.WriteLine("Modding time!");
             try
             {
-                DictionaryExtensions.SetValue(Settings.SettingsCache, "Display Mode", ModSettings.GetString("Display Mode", "pokegustavo.FactionVisits"));
-                DictionaryExtensions.SetValue(Settings.SettingsCache, "Role Revival Icon", ModSettings.GetBool("Role Revival Icon", "pokegustavo.FactionVisits"));
-                DictionaryExtensions.SetValue(Settings.SettingsCache, "Book Icon", ModSettings.GetBool("Book Icon", "pokegustavo.FactionVisits"));
-                DictionaryExtensions.SetValue(Settings.SettingsCache, "Special Ability Icon", ModSettings.GetBool("Special Ability Icon", "pokegustavo.FactionVisits"));
-                DictionaryExtensions.SetValue(Settings.SettingsCache, "Show Own Actions", ModSettings.GetBool("Show Own Actions", "pokegustavo.FactionVisits"));
-                DictionaryExtensions.SetValue(Settings.SettingsCache, "Handle Overcharged", ModSettings.GetString("Handle Overcharged", "pokegustavo.FactionVisits"));
+                DictionaryExtensions.SetValue(Settings.SettingsCache, "Display Mode", ModSettings.GetString("Display Mode", "doggie.licc.factionvisits"));
+                DictionaryExtensions.SetValue(Settings.SettingsCache, "Role Revival Icon", ModSettings.GetBool("Role Revival Icon", "doggie.licc.factionvisits"));
+                DictionaryExtensions.SetValue(Settings.SettingsCache, "Book Icon", ModSettings.GetBool("Book Icon", "doggie.licc.factionvisits"));
+                DictionaryExtensions.SetValue(Settings.SettingsCache, "Special Ability Icon", ModSettings.GetBool("Special Ability Icon", "doggie.licc.factionvisits"));
+                DictionaryExtensions.SetValue(Settings.SettingsCache, "Show Own Actions", ModSettings.GetBool("Show Own Actions", "doggie.licc.factionvisits"));
+                DictionaryExtensions.SetValue(Settings.SettingsCache, "Handle Overcharged", ModSettings.GetString("Handle Overcharged", "doggie.licc.factionvisits"));
             }
             catch (Exception ex)
             {
