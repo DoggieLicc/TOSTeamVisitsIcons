@@ -22,6 +22,7 @@ namespace TOSTeamVisitsIcons
     internal class Interpreter
     {
         static RoleCardPanel panel = null;
+        public static bool isRapidMode = false;
         public static Dictionary<int, int> summonTargets = new Dictionary<int, int>();
         //Roles whose regular abiility gets fully replaced when holding Necronomicon (Kinda guessing here)
         //As opposed to roles whose regular ability is the same but with an attack (Like ench+attack)
@@ -45,6 +46,15 @@ namespace TOSTeamVisitsIcons
         };
         internal static void HandleMessages(ChatLogMessage chatLogMessage)
         {
+            if (chatLogMessage.chatLogEntry is ChatLogGameMessageEntry)
+            {
+                ChatLogGameMessageEntry data = chatLogMessage.chatLogEntry as ChatLogGameMessageEntry;
+                if (data.messageId == GameFeedbackMessage.RAPID_MODE_STARTING)
+                {
+                    Console.WriteLine("TVI setting rapid mode to true");
+                    Interpreter.isRapidMode = true;
+                }
+            }
             if (!(Service.Game.Sim.info.gameInfo.Data.gamePhase == GamePhase.PLAY && (chatLogMessage.chatLogEntry is ChatLogFactionTargetSelectionFeedbackEntry || chatLogMessage.chatLogEntry is ChatLogTargetSelectionFeedbackEntry))) return;
             try
             {
@@ -110,9 +120,10 @@ namespace TOSTeamVisitsIcons
 
                 float remainingTime = (float)(Service.Game.Sim.simulation.playPhaseState.Data.playPhaseTime - DateTime.UtcNow).TotalSeconds;
                 int dayNightNumber = Service.Game.Sim.info.daytime.Data.daynightNumber;
+                float secondHalfTime = Interpreter.isRapidMode ? 10f : 19f;
                 Console.WriteLine("TOSTVI - Remaining time: " + remainingTime);
                 Console.WriteLine("TOSTVI - Current Day/Night number: " + dayNightNumber);
-                if (dayNightNumber > 1 && Service.Game.Sim.info.gameInfo.Data.playPhase == PlayPhase.NIGHT && !isCancel && !isChangingTarget && remainingTime <= 19f && Manager.Instance.handleOvercharged && Manager.Instance.overchargedTeammate == -1)
+                if (dayNightNumber > 1 && Service.Game.Sim.info.gameInfo.Data.playPhase == PlayPhase.NIGHT && !isCancel && !isChangingTarget && remainingTime <= secondHalfTime && Manager.Instance.handleOvercharged && Manager.Instance.overchargedTeammate == -1)
                 {
                     int tgc1 = Manager.Instance.TargetsCount(MenuChoiceType.NightAbility, teammateRole, teammatePosition);
                     int tgc2 = Manager.Instance.TargetsCount(MenuChoiceType.NightAbility2, teammateRole, teammatePosition);
@@ -454,6 +465,7 @@ namespace TOSTeamVisitsIcons
             {
                 Manager.Instance.setHandleOvercharged();
                 Console.WriteLine("TOSTVI do we handle overcharges?: " + Manager.Instance.handleOvercharged);
+                Interpreter.isRapidMode = false;
             }
         }
     }
