@@ -7,8 +7,8 @@
     <ProjectGuid>{D297E224-FAA2-4106-ADEF-E7078BFB00B5}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>TOSTeamVisitsIcons</RootNamespace>
-    <AssemblyName>TOSTeamVisitsIcons</AssemblyName>
+    <RootNamespace>FactionVisits</RootNamespace>
+    <AssemblyName>FactionVisits</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>

@@ -17,7 +17,7 @@ using SML;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace TOSTeamVisitsIcons
+namespace FactionVisits
 {
     internal class Interpreter
     {
