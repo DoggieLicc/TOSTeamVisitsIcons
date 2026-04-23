@@ -36,6 +36,14 @@ namespace FactionVisits
             {
                 Console.WriteLine("FactionVisits Fancy UI was not found.");
             }
+            try 
+            {
+                Settings.betterTos = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, "SalemModLoader\\Mods\\BetterTOS2.dll")); 
+            }
+            catch 
+            {
+                Console.WriteLine("FactionVisits BetterTOS2 was not found.");
+            }
         }
     }
 
@@ -43,6 +51,7 @@ namespace FactionVisits
     public class Settings
     {
         public static Assembly fancyUI = null;
+        public static Assembly betterTos = null;
         public static Dictionary<string, object> SettingsCache = new Dictionary<string, object>
         {
             {

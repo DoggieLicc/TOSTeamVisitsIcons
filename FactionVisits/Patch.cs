@@ -21,16 +21,15 @@ namespace FactionVisits
 {
     internal class Interpreter
     {
-        static RoleCardPanel panel = null;
+        public static RoleCardPanel panel = null;
         public static bool isRapidMode = false;
         public static Dictionary<int, int> summonTargets = new Dictionary<int, int>();
-        //Roles whose regular abiility gets fully replaced when holding Necronomicon (Kinda guessing here)
+        //Roles whose abiility1 gets replaced when holding Necronomicon (Kinda guessing here)
         //As opposed to roles whose regular ability is the same but with an attack (Like ench+attack)
-        //or roles whos book ability is seperated from their regular ability (baker, monarch)
         public static List<Role> BookReplacesAbility = new List<Role> {
             Role.ILLUSIONIST,
             Role.BODYGUARD,
-            Role.CATALYST,
+            //Role.CATALYST, cata with book overcharges too (???)
             Role.CLERIC,
             Role.CRUSADER,
             Role.PILGRIM, //no ability, just put here incase
@@ -41,8 +40,39 @@ namespace FactionVisits
             Role.SERIALKILLER, // These roles need book to attack on cov team, so just use book icon for them if they wield book
             Role.SHROUD,
             Role.BERSERKER,
-            Role.WEREWOLF //Attack is abil1, scent is abil2, should work
-            // Arsonist is a special case, handle later
+            Role.VIGILANTE,
+            Role.WEREWOLF, //Attack is abil1, scent is abil2, should work
+            Role.ARSONIST, //These roles ability1 move to ability2
+            Role.BAKER,
+            Role.MONARCH,
+            Role.SOCIALITE,
+            Role.JAILOR,
+            (Role)65 // BTOS2 Socialite
+        };
+        // Factional evil factions
+        public static List<FactionType> factionsWithChat = new List<FactionType> {
+            FactionType.COVEN,
+            FactionType.APOCALYPSE,
+            FactionType.VAMPIRE,
+            FactionType.CURSED_SOUL,
+            (FactionType)33, //Jackal, needs incase recruited evil
+            (FactionType)34, //Frogs
+            (FactionType)35, //Lions
+            (FactionType)36, //Hawks
+            (FactionType)43, //Pandora
+            (FactionType)44 //Compliance
+        };
+        //Roles with non-instant day abilities
+        public static List<Role> dayAbilityRoles = new List<Role> {
+            Role.JAILOR,
+            Role.ADMIRER,
+            Role.CORONER,
+            Role.SOCIALITE,
+            Role.CULTIST,
+            Role.DOOMSAYER, //BTOS2 Doom moment
+            Role.PIRATE, //BTOS2 Pirate moment
+            (Role)64, //BTOS2 Cultist
+            (Role)65  //BTOS2 Socialite
         };
         internal static void HandleMessages(ChatLogMessage chatLogMessage)
         {
@@ -67,6 +97,7 @@ namespace FactionVisits
                 bool isChangingTarget;
                 bool isCancel;
                 MenuChoiceType menuChoiceType;
+                FactionType teammateFaction = Service.Game.Sim.simulation.myIdentity.Data.faction;
                 bool isMe = false;
 
                 if (chatLogMessage.chatLogEntry is ChatLogFactionTargetSelectionFeedbackEntry)
@@ -95,10 +126,11 @@ namespace FactionVisits
                         case "Only as Factional Evil":
                             PlayerIdentityData myIdentity = (PlayerIdentityData)gameSimulation.myIdentity;
                             FactionType faction = myIdentity.faction;
-                            if (!(faction == FactionType.COVEN || faction == FactionType.APOCALYPSE || faction == FactionType.VAMPIRE || faction == FactionType.CURSED_SOUL))
+                            if (!factionsWithChat.Contains(faction))
                             {
                                 return;
                             }
+                            if (Manager.isModded() && data.currentRole == (Role)55) return; //Role 55 is BTOS2 Jackal
                             break;
                         case "Always":
                             break;
@@ -123,7 +155,8 @@ namespace FactionVisits
                 float secondHalfTime = Interpreter.isRapidMode ? 10f : 19f;
                 Console.WriteLine("FactionVisits - Remaining time: " + remainingTime);
                 Console.WriteLine("FactionVisits - Current Day/Night number: " + dayNightNumber);
-                if (dayNightNumber > 1 && Service.Game.Sim.info.gameInfo.Data.playPhase == PlayPhase.NIGHT && !isCancel && !isChangingTarget && remainingTime <= secondHalfTime && Manager.Instance.handleOvercharged && Manager.Instance.overchargedTeammate == -1)
+                bool potentiallyOvercharged = (!isCancel && !isChangingTarget) || isMe;
+                if (dayNightNumber > 1 && Service.Game.Sim.info.gameInfo.Data.playPhase == PlayPhase.NIGHT && potentiallyOvercharged && remainingTime <= secondHalfTime && Manager.Instance.handleOvercharged && Manager.Instance.overchargedTeammate == -1)
                 {
                     int tgc1 = Manager.Instance.TargetsCount(MenuChoiceType.NightAbility, teammateRole, teammatePosition);
                     int tgc2 = Manager.Instance.TargetsCount(MenuChoiceType.NightAbility2, teammateRole, teammatePosition);
@@ -144,10 +177,17 @@ namespace FactionVisits
                 //Only care about non-instant day abilites
                 if (Service.Game.Sim.info.gameInfo.Data.playPhase != PlayPhase.NIGHT)
                 {
-                    if (!ModSettings.GetBool("Day Ability Icons") || !(teammateRole == Role.JAILOR || teammateRole == Role.ADMIRER || teammateRole == Role.CORONER || teammateRole == Role.SOCIALITE || teammateRole == Role.CULTIST))
+                    if (!ModSettings.GetBool("Day Ability Icons") || !dayAbilityRoles.Contains(teammateRole))
                     {
                         return;
                     }
+                    if (isCancel)
+                    {
+                        Manager.Instance.CancelTarget(MenuChoiceType.SpecialAbility, teammateRole, teammatePosition);
+                        return;
+                    }
+                    //Ignore if day ability has no targets, like starspawn's daybreak
+                    if (teammateTarget1 == -1 && teammateTarget2 == -1) return;
                 }
 
                 UIRoleData.UIRoleDataInstance roleData = null;
@@ -180,6 +220,44 @@ namespace FactionVisits
                 if (roleData == null || roleData.roleIcon == null) return;
 
                 Console.WriteLine("FactionVisits all roledata grabed with success");
+
+                //Get correct teammate faction if we're a recruit
+                if (!isMe && Manager.Instance.amIRecruited)
+                {
+                    Tuple<Role, FactionType> rfTuple;
+                    Service.Game.Sim.simulation.knownRolesAndFactions.Data.TryGetValue(teammatePosition, out rfTuple);
+                    if (rfTuple == null)
+                    {
+                        teammateFaction = FactionType.NONE;
+                        Console.WriteLine($"FactionVisits as a recruit, unable to get faction of {teammatePosition}");
+                    }
+                    else
+                    {
+                        teammateFaction = rfTuple.Item2;
+                    }
+                    Console.WriteLine($"FactionVisits as a recruit, setting faction of {teammatePosition} to {teammateFaction}");
+                }
+
+                //Handle BTOS2 Pacifist Rallies
+                if (Manager.isModded() && teammateRole == (Role)66 && !(hasNecronomicon && menuChoiceType == MenuChoiceType.NightAbility))
+                {
+                    Console.WriteLine("FactionVisits handling Pacifist rally");
+                    if (ModSettings.GetString("Display Mode") == "No Icon") return;
+                    Sprite pacSprite = Manager.GetSprite(roleData, teammateFaction, 0);
+                    if (ModSettings.GetString("Display Mode") == "Ability Icon") pacSprite = Manager.GetSprite(roleData, teammateFaction, 2);
+                    string roleName = "PACIFIST-" + teammateTarget2;
+                    Manager.Instance.CancelTarget(MenuChoiceType.NightAbility, teammateRole, teammatePosition);
+                    if (isCancel)
+                    {
+                        Manager.Instance.CancelTarget(MenuChoiceType.NightAbility2, roleName, teammatePosition);
+                        return;
+                    }
+                    Console.WriteLine("FactionVisits adding Pacifist sprite with name: " + roleName);
+
+                    Manager.Instance.AddTarget(MenuChoiceType.NightAbility2, teammateTarget2, pacSprite, roleName, teammatePosition);
+                    return;
+                }
+
                 if (isCancel)
                 {
                     Manager.Instance.CancelTarget(menuChoiceType, teammateRole, teammatePosition);
@@ -191,7 +269,7 @@ namespace FactionVisits
                 }
                 Console.WriteLine("FactionVisits grabbing sprite");
                 //By default use role icon
-                Sprite sprite = Manager.GetSprite(roleData, panel, 0);
+                Sprite sprite = Manager.GetSprite(roleData, teammateFaction, 0);
                 Sprite sprite2 = null;
                 //Apply ability icon in case option is enabled
                 if (ModSettings.GetString("Display Mode") == "No Icon")
@@ -202,37 +280,40 @@ namespace FactionVisits
                 {
                     if (menuChoiceType == MenuChoiceType.NightAbility || ((teammateRole == Role.ILLUSIONIST || teammateRole == Role.JAILOR) && menuChoiceType == MenuChoiceType.NightAbility2))
                     {
-                        sprite = Manager.GetSprite(roleData, panel, 1);
+                        sprite = Manager.GetSprite(roleData, teammateFaction, 1);
                     }
                     else if (menuChoiceType == MenuChoiceType.NightAbility2)
                     {
-                        sprite = Manager.GetSprite(roleData, panel, 2);
+                        sprite = Manager.GetSprite(roleData, teammateFaction, 2);
                         //Failsafe
                         if (!sprite)
                         {
-                            sprite = Manager.GetSprite(roleData, panel, 1);
+                            sprite = Manager.GetSprite(roleData, teammateFaction, 1);
                             Console.WriteLine("FactionVisits DM ability 1 case scenario");
                         }
                         //Fail-Failsafe
                         if (!sprite)
                         {
-                            sprite = Manager.GetSprite(roleData, panel, 3);
+                            sprite = Manager.GetSprite(roleData, teammateFaction, 3);
                         }
                         //Fail-Fail-Failsafe
                         if (!sprite)
                         {
                             Console.WriteLine("FactionVisits - No sprites found, using role");
-                            sprite = Manager.GetSprite(roleData, panel, 0);
+                            sprite = Manager.GetSprite(roleData, teammateFaction, 0);
                         }
                     }
                 }
-                if (hasNecronomicon)
+                //Second part is a check for BTOS2 Coven-SK using Posses
+                if (hasNecronomicon && ((menuChoiceType == MenuChoiceType.NightAbility) || (teammateRole == Role.SERIALKILLER && menuChoiceType == MenuChoiceType.NightAbility2 && Manager.isModded())))
                 {
+                    bool replaceAbility = BookReplacesAbility.Contains(teammateRole) && menuChoiceType == MenuChoiceType.NightAbility && ModSettings.GetString("Display Mode") == "Ability Icon";
+                    Console.WriteLine("FactionVisits book handler - replaceAbility?: " + replaceAbility);
                     switch (ModSettings.GetString("Book Icon"))
                     {
                         case "No Icon":
                             //If their role's normal ability gets deleted with book, remove original sprite
-                            if (BookReplacesAbility.Contains(teammateRole) && ModSettings.GetString("Display Mode") == "Ability Icon")
+                            if (replaceAbility)
                             {
                                 sprite = null;
                             }
@@ -243,7 +324,7 @@ namespace FactionVisits
                             break;
                         case "Add Icon":
                             //If their role's normal ability gets deleted with book, replace first sprite anyway
-                            if (BookReplacesAbility.Contains(teammateRole) && ModSettings.GetString("Display Mode") == "Ability Icon")
+                            if (replaceAbility)
                             {
                                 sprite = Service.Game.PlayerEffects.GetEffect(EffectType.NECRONOMICON).sprite;
                             }
@@ -301,13 +382,13 @@ namespace FactionVisits
                             {
                                 //If unable to get icon of the role been revived, put ability 2 icon
                                 Console.WriteLine("FactionVisits invalid revival role");
-                                sprite = Manager.GetSprite(roleData, panel, 2);
+                                sprite = Manager.GetSprite(roleData, teammateFaction, 2);
                             }
                         }
                         catch (KeyNotFoundException)
                         {
                             Console.WriteLine("FactionVisits summon info not found");
-                            sprite = Manager.GetSprite(roleData, panel, 2);
+                            sprite = Manager.GetSprite(roleData, teammateFaction, 2);
                         }
                     }
                 }
@@ -315,13 +396,13 @@ namespace FactionVisits
                 else if ((teammateRole == Role.WITCH || teammateRole == Role.NECROMANCER || teammateRole == Role.RETRIBUTIONIST || teammateRole == Role.POISONER) && menuChoiceType == MenuChoiceType.NightAbility2)
                 {
                     Console.WriteLine("FactionVisits ability 2 case scenario");
-                    sprite = Manager.GetSprite(roleData, panel, 2);
+                    sprite = Manager.GetSprite(roleData, teammateFaction, 2);
                 }
                 //Always apply ability icon when it comes to special abilities
                 if (menuChoiceType == MenuChoiceType.SpecialAbility)
                 {
                     Console.WriteLine("FactionVisits special ability case scenario");
-                    sprite = Manager.GetSprite(roleData, panel, 3);
+                    sprite = Manager.GetSprite(roleData, teammateFaction, 3);
                 }
                 Console.WriteLine("FactionVisits starting the request");
                 switch (menuChoiceType)
@@ -341,8 +422,18 @@ namespace FactionVisits
                         }
                         break;
                     case MenuChoiceType.NightAbility2:
-                        if (!sprite) break;
-                        Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility2, teammateTarget2, sprite, teammateRole, teammatePosition);
+                        if (sprite)
+                        {
+                            Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility2, teammateTarget2, sprite, teammateRole, teammatePosition);
+                        }
+                        if (!sprite && sprite2)
+                        {
+                            Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility2, teammateTarget2, sprite2, teammateRole, teammatePosition);
+                        }
+                        else if (sprite2)
+                        {
+                            Manager.Instance.AddTarget(MenuChoiceType.NightAbility2, teammateTarget2, sprite2, teammateRole, teammatePosition);
+                        }
                         break;
                     case MenuChoiceType.SpecialAbility:
                         if (!sprite) break;
@@ -360,6 +451,7 @@ namespace FactionVisits
                         if (teammateTargetingPosition == teammatePosition && (teammateTargetRole != Role.NONE) && ModSettings.GetString("Special Ability Icon") != "No Icon")
                         {
                             Manager.Instance.CancelTarget(MenuChoiceType.SpecialAbility, teammateRole, teammatePosition);
+                            Manager.Instance.CancelTarget(MenuChoiceType.NightAbility, teammateRole, teammatePosition);
                             foreach (TosAbilityPanelListItem player in Manager.Instance.Panel.playerListPlayers)
                             {
                                 if (player.playerRole == teammateTargetRole)
@@ -410,6 +502,8 @@ namespace FactionVisits
             catch (Exception e)
             {
                 Console.WriteLine("FactionVisits Error! " + e.Message);
+                Console.WriteLine("FactionVisits ErrorSource: " + e.Source);
+                Console.WriteLine("FactionVisits ErrorTrace: --\n" + e.StackTrace);
             }
         }
     }
@@ -464,8 +558,20 @@ namespace FactionVisits
             if (gameInfoObservation.Data.gamePhase == GamePhase.PLAY && gameInfoObservation.Data.playPhase == PlayPhase.FIRST_DISCUSSION)
             {
                 Manager.Instance.setHandleOvercharged();
+                Interpreter.summonTargets.Clear();
+                Manager.Instance.overchargedTeammate = -1;
+                Manager.Instance.amIRecruited = false;
+                Interpreter.panel = null;
                 Console.WriteLine("FactionVisits do we handle overcharges?: " + Manager.Instance.handleOvercharged);
                 Interpreter.isRapidMode = false;
+                Console.WriteLine("FactionVisits are we modded?: " + Manager.isModded());
+                if (Manager.isModded())
+                {
+                    FactionType myFaction = Service.Game.Sim.simulation.myIdentity.Data.faction;
+                    Role myRole = Service.Game.Sim.simulation.myIdentity.Data.role;
+                    if (myFaction == (FactionType)33 && myRole != (Role)55) Manager.Instance.amIRecruited = true;
+                    Console.WriteLine("FactionVisits are we recruited?: " + Manager.Instance.amIRecruited);
+                }
             }
         }
     }
@@ -475,6 +581,7 @@ namespace FactionVisits
         internal Dictionary<int, List<Image>> visits = new Dictionary<int, List<Image>>();
         public bool handleOvercharged = false;
         public int overchargedTeammate = -1;  //Can only handle 1 overcharged teammate at a time due to game limits
+        public bool amIRecruited = false;
         TosAbilityPanel _panel = null;
         static Manager _instance = null;
         internal static Manager Instance
@@ -515,11 +622,13 @@ namespace FactionVisits
         {
             if (ModSettings.GetString("Handle Overcharged") == "Never") return false;
             List<Role> modifiers = Service.Game.Sim.simulation.roleDeckBuilder.Data.modifierCards;
-            if (modifiers.Contains(Role.ALL_OUTLIERS)) return true;
+            if ((!Manager.isModded() && modifiers.Contains(Role.ALL_OUTLIERS)) || (Manager.isModded() && modifiers.Contains((Role)231))) return true;  //Role 231 is All Outliers in BTOS2
             List<RoleDeckSlot> roleDeckSlots = Service.Game.Sim.simulation.roleDeckBuilder.Data.roleDeckSlots;
+            if (roleDeckSlots.Count == 0) return true; //Replays dont show any slots sometimes, assume true if so
             foreach(RoleDeckSlot roleDeckSlot in roleDeckSlots)
             {
-                if (roleDeckSlot.Role1 == Role.CATALYST || roleDeckSlot.Role2 == Role.CATALYST) return true;
+                if (!Manager.isModded() && (roleDeckSlot.Role1 == Role.CATALYST || roleDeckSlot.Role2 == Role.CATALYST)) return true;
+                if (Manager.isModded() && (roleDeckSlot.Role1 == (Role)63 || roleDeckSlot.Role2 == (Role)63)) return true; //Role 63 is BTOS2 Catalyst
             }
             return false;
         }
@@ -527,7 +636,13 @@ namespace FactionVisits
         {
             handleOvercharged = canOverchargeHappen();
         }
-        internal void AddTarget(MenuChoiceType abilityId, int targetPlayer, Sprite sprite, Role role, int actorPlayer)
+        public static bool isModded()
+        {
+            if (Settings.betterTos == null || !ModStates.IsEnabled("curtis.tuba.better.tos2")) return false;
+            Type btosInfo = Settings.betterTos.GetType("BetterTOS2.BTOSInfo");
+            return (bool)btosInfo.GetField("IS_MODDED", BindingFlags.Static | BindingFlags.Public).GetValue(null);
+        }
+        internal void AddTarget(MenuChoiceType abilityId, int targetPlayer, Sprite sprite, object role, int actorPlayer)
         {
             //Adds the sprite to a list with a special name to mark it aparta by player, role and ability
             TosAbilityPanelListItem tagetPlayerPanel = Panel.playerListPlayers[targetPlayer];
@@ -562,7 +677,7 @@ namespace FactionVisits
             image.transform.localPosition = new Vector3(80 + 32 * (visits[targetPlayer].Count - 1), 0, 0);
             image.gameObject.SetActive(true);
         }
-        internal int TargetsCount(MenuChoiceType abilityId, Role role, int actorPlayer)
+        internal int TargetsCount(MenuChoiceType abilityId, object role, int actorPlayer)
         {
             int counter = 0;
             string roleName = $"{role}({actorPlayer})";
@@ -591,7 +706,7 @@ namespace FactionVisits
             }
             return counter;
         }
-        internal void CancelTarget(MenuChoiceType abilityId, Role role, int actorPlayer)
+        internal void CancelTarget(MenuChoiceType abilityId, object role, int actorPlayer)
         {
             //Removes the requested sprite from the list of sprites
             bool removed = false;
@@ -642,6 +757,7 @@ namespace FactionVisits
                 case Role.BODYGUARD:
                 case Role.CLERIC:
                 case Role.TRICKSTER:
+                case Role.BAKER:
                 case Role.ARSONIST:
                 case Role.POTIONMASTER:
                 case Role.RITUALIST:
@@ -664,16 +780,25 @@ namespace FactionVisits
                         CancelTarget(abilityId, role, actorPlayer);
                     }
                     break;
+                case (Role)58: //Auditor in BTOS2, Covenite in Vanilla
+                case (Role)59: //Inquisitor in BTOS2, Catalyst in Vanilla
+                case (Role)62: //Warlock in BTOS2
+                case (Role)65: //Socialite in BTOS2
+                case Role.SERIALKILLER:
+                case Role.JAILOR:
+                case Role.SOCIALITE:
                 case Role.MONARCH:
-                case Role.BAKER:
                 case Role.PIRATE:
-                case Role.ILLUSIONIST:
                 case Role.POISONER:
                 case Role.MEDUSA:
                 case Role.VAMPIRE:
                     CancelTarget(MenuChoiceType.NightAbility, role, actorPlayer);
                     CancelTarget(MenuChoiceType.NightAbility2, role, actorPlayer);
                     break;
+                case Role.ORACLE:
+                case (Role)61: //Oracle in BTOS2
+                case Role.VETERAN:
+                case Role.ILLUSIONIST:
                 case Role.COVENLEADER:
                     CancelTarget(MenuChoiceType.SpecialAbility, role, actorPlayer);
                     CancelTarget(MenuChoiceType.NightAbility, role, actorPlayer);
@@ -682,6 +807,34 @@ namespace FactionVisits
                     if (TargetsCount(MenuChoiceType.SpecialAbility, role, actorPlayer) >= 3)
                     {
                         CancelTarget(MenuChoiceType.SpecialAbility, role, actorPlayer);
+                    }
+                    break;
+                case (Role)66: //BTOS2 Pacifist
+                    if (!Manager.isModded()) return;
+                    CancelTarget(MenuChoiceType.NightAbility, role, actorPlayer);
+                    for (int i = 0; i < _panel.playerListPlayers.Count; i++)
+                    {
+                        CancelTarget(MenuChoiceType.NightAbility2, "PACIFIST-"+i, actorPlayer);
+                    }
+                    break;
+                case Role.SEER:
+                    if (Manager.isModded())
+                    {
+                        if (abilityId == MenuChoiceType.NightAbility)
+                        {
+                            CancelTarget(MenuChoiceType.NightAbility, role, actorPlayer);
+                            CancelTarget(MenuChoiceType.NightAbility2, role, actorPlayer);
+                            CancelTarget(MenuChoiceType.SpecialAbility, role, actorPlayer);
+                        }
+                        else
+                        {
+                            CancelTarget(MenuChoiceType.NightAbility, role, actorPlayer);
+                            CancelTarget(abilityId, role, actorPlayer);
+                        }
+                    }
+                    else
+                    {
+                        CancelTarget(abilityId, role, actorPlayer);
                     }
                     break;
                 default:
@@ -712,11 +865,6 @@ namespace FactionVisits
             Interpreter.summonTargets.Clear();
         }
 
-
-        internal static Sprite GetSprite(UIRoleData.UIRoleDataInstance instance, RoleCardPanel panel, int ability = 0) 
-        {
-            return GetSprite(instance, panel.CurrentFaction, ability);
-        }
         internal static Sprite GetSprite(UIRoleData.UIRoleDataInstance instance, FactionType faction, int ability = 0)
         {
             Sprite sprite;
