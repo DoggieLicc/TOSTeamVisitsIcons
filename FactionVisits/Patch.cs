@@ -260,11 +260,7 @@ namespace FactionVisits
 
                 if (isCancel)
                 {
-                    Manager.Instance.CancelTarget(menuChoiceType, teammateRole, teammatePosition);
-                    if (menuChoiceType == MenuChoiceType.SpecialAbility && (teammateRole == Role.NECROMANCER || teammateRole == Role.RETRIBUTIONIST))
-                    {
-                        Manager.Instance.CancelTarget(MenuChoiceType.NightAbility2, teammateRole, teammatePosition);
-                    }
+                    Manager.Instance.ChangeTarget(menuChoiceType, -1, null, teammateRole, teammatePosition);
                     return;
                 }
                 Console.WriteLine("FactionVisits grabbing sprite");
@@ -846,6 +842,7 @@ namespace FactionVisits
                     CancelTarget(abilityId, role, actorPlayer);
                     break;
             }
+            if (targetPlayer == -1 || sprite == null) return;
             Console.WriteLine("FactionVisits adding icon to new target");
             AddTarget(abilityId, targetPlayer, sprite, role, actorPlayer);
         }
