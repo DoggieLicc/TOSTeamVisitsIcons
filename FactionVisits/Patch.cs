@@ -24,6 +24,7 @@ namespace FactionVisits
         public static RoleCardPanel panel = null;
         public static bool isRapidMode = false;
         public static Dictionary<int, int> summonTargets = new Dictionary<int, int>();
+        public static Dictionary<int, bool> tSpecialAbiilityData = new Dictionary<int, bool>();
         //Roles whose abiility1 gets replaced when holding Necronomicon (Kinda guessing here)
         //As opposed to roles whose regular ability is the same but with an attack (Like ench+attack)
         public static List<Role> BookReplacesAbility = new List<Role> {
@@ -157,6 +158,19 @@ namespace FactionVisits
                 // Don't handle unsupported choice types
                 if (!(menuChoiceType == MenuChoiceType.NightAbility || menuChoiceType == MenuChoiceType.NightAbility2 || menuChoiceType == MenuChoiceType.SpecialAbility)) return;
 
+                if (menuChoiceType == MenuChoiceType.SpecialAbility && teammateRole == Role.SHROUD)
+                {
+                    Console.WriteLine("FactionVisits toggleable special ability data to cache");
+                    if (tSpecialAbiilityData.ContainsKey(teammatePosition))
+                    {
+                        tSpecialAbiilityData[teammatePosition] = !isCancel;
+                    }
+                    else
+                    {
+                        tSpecialAbiilityData.Add(teammatePosition, !isCancel);
+                    }
+                }
+
                 float remainingTime = (float)(Service.Game.Sim.simulation.playPhaseState.Data.playPhaseTime - DateTime.UtcNow).TotalSeconds;
                 int dayNightNumber = Service.Game.Sim.info.daytime.Data.daynightNumber;
                 float secondHalfTime = Interpreter.isRapidMode ? 10f : 19f;
@@ -265,7 +279,7 @@ namespace FactionVisits
                     return;
                 }
 
-                if (isCancel)
+                if (isCancel && !(teammateRole == Role.SHROUD && menuChoiceType == MenuChoiceType.SpecialAbility))
                 {
                     Manager.Instance.ChangeTarget(menuChoiceType, -1, null, teammateRole, teammatePosition);
                     return;
@@ -281,6 +295,34 @@ namespace FactionVisits
                 }
                 if (ModSettings.GetString("Display Mode") == "Ability Icon")
                 {
+                    if (teammateRole == Role.SHROUD)
+                    {
+                        Console.WriteLine("FactionVisits handling shroud");
+                        bool useShroudingIcon = false;
+                        if (tSpecialAbiilityData.ContainsKey(teammatePosition)) useShroudingIcon = tSpecialAbiilityData[teammatePosition];
+                        Console.WriteLine("FactionVisits is shrouding?: " + useShroudingIcon);
+                        if (menuChoiceType == MenuChoiceType.SpecialAbility)
+                        {
+                            int oldTarget = Manager.Instance.GetTarget(MenuChoiceType.NightAbility, teammateRole, teammatePosition);
+                            if (oldTarget == -1) oldTarget = Manager.Instance.GetTarget(MenuChoiceType.NightAbility2, teammateRole, teammatePosition);
+                            if (oldTarget == -1) return;
+                            Console.WriteLine("FactionVisits found shrouded target: " + oldTarget);
+                            if (useShroudingIcon)
+                            {
+                                menuChoiceType = MenuChoiceType.NightAbility2;
+                                teammateTarget2 = oldTarget;
+                            }
+                            else
+                            {
+                                menuChoiceType = MenuChoiceType.NightAbility;
+                                teammateTarget1 = oldTarget;
+                            }
+                        } else if (useShroudingIcon)
+                        {
+                            menuChoiceType = MenuChoiceType.NightAbility2;
+                            teammateTarget2 = teammateTarget1;
+                        }
+                    }
                     if (menuChoiceType == MenuChoiceType.NightAbility || ((teammateRole == Role.ILLUSIONIST || teammateRole == Role.JAILOR) && menuChoiceType == MenuChoiceType.NightAbility2))
                     {
                         sprite = Manager.GetSprite(roleData, teammateFaction, 1);
@@ -306,11 +348,17 @@ namespace FactionVisits
                             sprite = Manager.GetSprite(roleData, teammateFaction, 0);
                         }
                     }
+                    if (menuChoiceType == MenuChoiceType.NightAbility2 && teammateRole == Role.SHROUD)
+                    {
+                        sprite = Manager.GetSprite(roleData, teammateFaction, 3);
+                    }
                 }
                 //Second part is a check for BTOS2 Coven-SK using Posses
-                if (hasNecronomicon && ((menuChoiceType == MenuChoiceType.NightAbility) || (teammateRole == Role.SERIALKILLER && menuChoiceType == MenuChoiceType.NightAbility2 && Manager.isModded())))
+                if (hasNecronomicon && ((menuChoiceType == MenuChoiceType.NightAbility) || (teammateRole == Role.SHROUD) || (teammateRole == Role.SERIALKILLER && menuChoiceType == MenuChoiceType.NightAbility2 && Manager.isModded())))
                 {
-                    bool replaceAbility = BookReplacesAbility.Contains(teammateRole) && menuChoiceType == MenuChoiceType.NightAbility && ModSettings.GetString("Display Mode") == "Ability Icon";
+                    bool isShrouding = false;
+                    if (teammateRole == Role.SHROUD && tSpecialAbiilityData.ContainsKey(teammatePosition)) isShrouding = tSpecialAbiilityData[teammatePosition];
+                    bool replaceAbility = (BookReplacesAbility.Contains(teammateRole) && !isShrouding) && menuChoiceType == MenuChoiceType.NightAbility && ModSettings.GetString("Display Mode") == "Ability Icon";
                     Console.WriteLine("FactionVisits book handler - replaceAbility?: " + replaceAbility);
                     switch (ModSettings.GetString("Book Icon"))
                     {
@@ -396,7 +444,7 @@ namespace FactionVisits
                     }
                 }
                 //Add 2nd ability icon no matter the option selected to avoid duplicated icons
-                else if ((teammateRole == Role.WITCH || teammateRole == Role.NECROMANCER || teammateRole == Role.RETRIBUTIONIST || teammateRole == Role.POISONER) && menuChoiceType == MenuChoiceType.NightAbility2)
+                else if ((teammateRole == Role.WITCH || teammateRole == Role.NECROMANCER || teammateRole == Role.RETRIBUTIONIST || teammateRole == Role.POISONER || teammateRole == Role.SEER || teammateRole == Role.WAR || (Manager.isModded() && teammateRole == Role.CORONER)) && menuChoiceType == MenuChoiceType.NightAbility2)
                 {
                     Console.WriteLine("FactionVisits ability 2 case scenario");
                     sprite = Manager.GetSprite(roleData, teammateFaction, 2);
@@ -694,7 +742,39 @@ namespace FactionVisits
                 Console.WriteLine("FactionVisits ErrorTrace: --\n" + e.StackTrace);
             }
         }
-
+        internal int GetTarget(MenuChoiceType abilityId, object role, int actorPlayer)
+        {
+            int counter = 0;
+            string roleName = $"{role}({actorPlayer})";
+            if (abilityId == MenuChoiceType.NightAbility2)
+            {
+                roleName += "2";
+            }
+            else if (abilityId == MenuChoiceType.SpecialAbility)
+            {
+                roleName += "S";
+            }
+            if (actorPlayer == overchargedTeammate)
+            {
+                roleName += "C";
+            }
+            Console.WriteLine("FactionVisits get target: " + roleName);
+            foreach (List<Image> imgs in visits.Values)
+            {
+                for (int i = 0; i < imgs.Count; i++)
+                {
+                    try
+                    {
+                        if (imgs[i].gameObject.name == roleName) return counter;
+                    } catch 
+                    {
+                        Console.WriteLine($"FactionVisits ignoring error when getting {roleName}");
+                    }
+                }
+                counter++;
+            }
+            return -1;
+        }
         internal int TargetsCount(MenuChoiceType abilityId, object role, int actorPlayer)
         {
             int counter = 0;
