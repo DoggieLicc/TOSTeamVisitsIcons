@@ -4,6 +4,8 @@ This mod adds visual icons to help you coordinate who your teammates are going t
 
 Fork of [TOSTeamVisitsIcons](https://github.com/pokegustavor/TOSTeamVisitsIcons) by pokegustavor
 
+[Discord Server](https://discord.gg/d7dgReCnRR)
+
 ## Features
 
 ### Role Revival Icon
