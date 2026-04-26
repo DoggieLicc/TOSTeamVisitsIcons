@@ -1005,6 +1005,10 @@ namespace FactionVisits
                 //Get sprite from Fancy UI if found
                 sprite = GetFancyUISprite(instance.role, faction, ability);
                 if (sprite != ((Sprite)Settings.fancyUI.GetType("FancyUI.Assets.FancyAssetManager").GetProperty("Blank", BindingFlags.Static | BindingFlags.Public).GetValue(null))) return sprite;
+                Console.WriteLine($"FactionVisits no FancyUI sprite found for {instance.role}({ability})[{faction}], gonna retry with base faction");
+                sprite = GetFancyUISprite(instance.role, null, ability);
+                if (sprite != ((Sprite)Settings.fancyUI.GetType("FancyUI.Assets.FancyAssetManager").GetProperty("Blank", BindingFlags.Static | BindingFlags.Public).GetValue(null))) return sprite;
+                Console.WriteLine($"FactionVisits no FancyUI sprite found for {instance.role}({ability}), using vanilla sprite.");
             }
             //Get vannila icons
             switch (ability)
@@ -1026,7 +1030,7 @@ namespace FactionVisits
             return sprite;
         }
 
-        private static Sprite GetFancyUISprite(Role role, FactionType faction, int ability)
+        private static Sprite GetFancyUISprite(Role role, FactionType? faction, int ability)
         {
             //Load types
             Type fancyuiassman = Settings.fancyUI.GetType("FancyUI.Assets.FancyAssetManager");
@@ -1049,6 +1053,10 @@ namespace FactionVisits
                     break;
             }
             //Get faction name
+            if (faction == null)
+            {
+                faction = (FactionType)facnyuiutils.GetMethod("GetFactionType", BindingFlags.Static | BindingFlags.Public).Invoke(null, new object[] { role, null });
+            }
             string FactionName = (string)facnyuiutils.GetMethod("FactionName", BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(FactionType), Settings.fancyUI.GetType("FancyUI.GameModType"), typeof(bool), typeof(bool) }, null).Invoke(null, new object[] { faction, null, true, false });
             //Get sprite
             Sprite sprite = (Sprite)fancyuiassman.GetMethod("GetSprite", BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(string), typeof(bool), typeof(string), typeof(string), typeof(bool) }, null).Invoke(null, new object[] { RoleName, true, FactionName, null, false });
