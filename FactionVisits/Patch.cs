@@ -27,7 +27,8 @@ namespace FactionVisits
         public static Dictionary<int, bool> tSpecialAbiilityData = new Dictionary<int, bool>();
         //Roles whose abiility1 gets replaced when holding Necronomicon (Kinda guessing here)
         //As opposed to roles whose regular ability is the same but with an attack (Like ench+attack)
-        public static List<Role> BookReplacesAbility = new List<Role> {
+        public static List<Role> BookReplacesAbility = new List<Role>
+        {
             Role.ILLUSIONIST,
             Role.BODYGUARD,
             //Role.CATALYST, cata with book overcharges too (???)
@@ -51,7 +52,8 @@ namespace FactionVisits
             (Role)65 // BTOS2 Socialite
         };
         // Factional evil factions
-        public static List<FactionType> factionsWithChat = new List<FactionType> {
+        public static List<FactionType> factionsWithChat = new List<FactionType>
+        {
             FactionType.COVEN,
             FactionType.APOCALYPSE,
             FactionType.VAMPIRE,
@@ -64,7 +66,8 @@ namespace FactionVisits
             (FactionType)44 //Compliance
         };
         //Roles with non-instant day abilities
-        public static List<Role> dayAbilityRoles = new List<Role> {
+        public static List<Role> dayAbilityRoles = new List<Role>
+        {
             Role.JAILOR,
             Role.ADMIRER,
             Role.CORONER,
@@ -74,6 +77,14 @@ namespace FactionVisits
             Role.PIRATE, //BTOS2 Pirate moment
             (Role)64, //BTOS2 Cultist
             (Role)65  //BTOS2 Socialite
+        };
+        public static Dictionary<Role, Role> acolyteToHorsemen = new Dictionary<Role, Role>
+        {
+            {Role.PLAGUEBEARER, Role.PESTILENCE},
+            {Role.BERSERKER, Role.WAR},
+            {Role.BAKER, Role.FAMINE},
+            {Role.SOULCOLLECTOR, Role.DEATH},
+            {(Role)62, Role.DEATH} //Warlock
         };
         public static void Reset()
         {
@@ -157,6 +168,18 @@ namespace FactionVisits
 
                 // Don't handle unsupported choice types
                 if (!(menuChoiceType == MenuChoiceType.NightAbility || menuChoiceType == MenuChoiceType.NightAbility2 || menuChoiceType == MenuChoiceType.SpecialAbility)) return;
+
+                // Teammate role might be inaccurate for transformed horsemen, so we check here
+                if (acolyteToHorsemen.ContainsKey(teammateRole))
+                {
+                    Tuple<Role, FactionType> rfTuple;
+                    Service.Game.Sim.simulation.knownRolesAndFactions.Data.TryGetValue(teammatePosition, out rfTuple);
+                    if (rfTuple != null && rfTuple.Item1 == acolyteToHorsemen[teammateRole])
+                    {
+                        teammateRole = acolyteToHorsemen[teammateRole];
+                        Console.WriteLine($"Fixed {teammatePosition} Role to {teammateRole}");
+                    }
+                }
 
                 if (menuChoiceType == MenuChoiceType.SpecialAbility && teammateRole == Role.SHROUD)
                 {
