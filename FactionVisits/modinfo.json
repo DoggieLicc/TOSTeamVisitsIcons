@@ -3,7 +3,7 @@
   "DisplayName": "Faction Visits",
   "Authors": [ "Pokegustavo", "DoggieLicc" ],
   "Description": "Shows who your faction allies are targeting",
-  "Version": "1.3.3",
+  "Version": "1.3.4",
   "RequiredMods": [],
   "ConflictingMods": [ "pokegustavo.FactionVisits" ],
   "Discord": "https://discord.gg/d7dgReCnRR"

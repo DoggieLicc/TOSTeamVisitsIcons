@@ -102,6 +102,7 @@ namespace FactionVisits
             {
                 ChatLogGameMessageEntry data = chatLogMessage.chatLogEntry as ChatLogGameMessageEntry;
                 bool clearOurIcons = false;
+                bool replaceOurIcons = false;
                 Role ourRole = Role.NONE;
                 switch (data.messageId)
                 {
@@ -126,6 +127,37 @@ namespace FactionVisits
                         potionChoiceData = 3;
                         clearOurIcons = true;
                         ourRole = Role.POTIONMASTER;
+                        break;
+                    case GameFeedbackMessage.BLINDED: //Btos2 moment
+                        if (!Manager.isModded()) return;
+                        potionChoiceData = 1;
+                        ourRole = Role.VOODOOMASTER;
+                        replaceOurIcons = true;
+                        break;
+                    case GameFeedbackMessage.BLINDED_BUT_SATED: //Btos2 moment
+                        if (!Manager.isModded()) return;
+                        potionChoiceData = 2;
+                        ourRole = Role.VOODOOMASTER;
+                        replaceOurIcons = true;
+                        break;
+                    case GameFeedbackMessage.VOODOO_MASTER_SILENCE_TARGET:
+                        potionChoiceData = 1;
+                        ourRole = Role.VOODOOMASTER;
+                        replaceOurIcons = true;
+                        if (Manager.isModded())
+                        {
+                            potionChoiceData = 3;
+                        }
+                        break;
+                    case GameFeedbackMessage.VOODOO_MASTER_DEAFEN_TARGET:
+                        potionChoiceData = 2;
+                        ourRole = Role.VOODOOMASTER;
+                        replaceOurIcons = true;
+                        break;
+                    case GameFeedbackMessage.VOODOO_MASTER_BLIND_TARGET:
+                        potionChoiceData = 3;
+                        ourRole = Role.VOODOOMASTER;
+                        replaceOurIcons = true;
                         break;
                     case (GameFeedbackMessage)1066:
                     case (GameFeedbackMessage)1069: //BTOS2 Baker Wheat Loaf (Reveal)
@@ -154,6 +186,27 @@ namespace FactionVisits
                     GameSimulation gameSimulation = Service.Game.Sim.simulation;
                     Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility, -1, null, ourRole, Service.Game.Sim.simulation.myPosition);
                     Console.WriteLine("FactionVisits clearing own icons due to potion/bread switch");
+                }
+                if (replaceOurIcons && ModSettings.GetString("Display Mode") == "Ability Icon")
+                {
+                    RoleCardData rcData = Service.Game.Sim.info.roleCardObservation.Data;
+                    GameSimulation gameSimulation = Service.Game.Sim.simulation;
+                    int ourTarget = Manager.Instance.GetTarget(MenuChoiceType.NightAbility, ourRole, Service.Game.Sim.simulation.myPosition);
+                    if (ourTarget == -1) return;
+                    if (rcData.hasNecronomicon && ModSettings.GetString("Book Icon") == "Replace Icon") return;
+                    if (panel == null) panel = UnityEngine.Object.FindObjectOfType<RoleCardPanel>();
+                    if (panel == null) return;
+                    UIRoleData.UIRoleDataInstance  roleData = panel.roleData.roleDataList.Find((UIRoleData.UIRoleDataInstance d) => d.role == ourRole);
+                    if (roleData == null || roleData.roleIcon == null) return;
+                    FactionType myFaction = Service.Game.Sim.simulation.myIdentity.Data.faction;
+                    Sprite sprite = Manager.GetSprite(roleData, myFaction, potionChoiceData);
+                    Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility, ourTarget, sprite, ourRole, Service.Game.Sim.simulation.myPosition);
+                    Console.WriteLine("FactionVisits replacing own icons due to doll switch");
+                    if (rcData.hasNecronomicon && ModSettings.GetString("Book Icon") == "Add Icon")
+                    {
+                        Sprite bookSprite = Service.Game.PlayerEffects.GetEffect(EffectType.NECRONOMICON).sprite;
+                        Manager.Instance.AddTarget(MenuChoiceType.NightAbility, ourTarget, bookSprite, ourRole, Service.Game.Sim.simulation.myPosition);
+                    }
                 }
             }
             if (!(Service.Game.Sim.info.gameInfo.Data.gamePhase == GamePhase.PLAY && (chatLogMessage.chatLogEntry is ChatLogFactionTargetSelectionFeedbackEntry || chatLogMessage.chatLogEntry is ChatLogTargetSelectionFeedbackEntry))) return;
@@ -235,8 +288,8 @@ namespace FactionVisits
                     }
                 }
 
-                // Set correct extra data for self when PMer or BTOS2 Baker
-                if (isMe && (teammateRole == Role.POTIONMASTER || (teammateRole == Role.BAKER && Manager.isModded())))
+                // Set correct extra data for self when PMer, VMer or BTOS2 Baker
+                if (isMe && (teammateRole == Role.POTIONMASTER || teammateRole == Role.VOODOOMASTER || (teammateRole == Role.BAKER && Manager.isModded())))
                 {
                     additData = potionChoiceData;
                 }
@@ -417,7 +470,7 @@ namespace FactionVisits
                             teammateTarget2 = teammateTarget1;
                         }
                     }
-                    if (teammateRole == Role.POTIONMASTER || (Manager.isModded() && teammateRole == Role.BAKER))
+                    if (teammateRole == Role.POTIONMASTER || teammateRole == Role.VOODOOMASTER || (Manager.isModded() && teammateRole == Role.BAKER))
                     {
                         if (teammateRole == Role.BAKER && !isMe) //Game doesn't tell us our teammates bread choice :( use Feed icon instead
                         {
