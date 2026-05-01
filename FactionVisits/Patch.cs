@@ -51,6 +51,7 @@ namespace FactionVisits
             Role.SOCIALITE,
             Role.JAILOR,
             Role.POTIONMASTER,
+            Role.AMNESIAC,
             (Role)65 // BTOS2 Socialite
         };
         // Factional evil factions
