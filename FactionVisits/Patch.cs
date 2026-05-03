@@ -330,7 +330,7 @@ namespace FactionVisits
                 bool potentiallyOvercharged = (!isCancel && !isChangingTarget) || isMe;
 
                 //Overcharge handler
-                if (dayNightNumber > 1 && Service.Game.Sim.info.gameInfo.Data.playPhase == PlayPhase.NIGHT && potentiallyOvercharged && remainingTime <= secondHalfTime && Manager.Instance.handleOvercharged && Manager.Instance.overchargedTeammate == -1)
+                if (dayNightNumber > 1 && teammateRole != Role.CURSED_SOUL && Service.Game.Sim.info.gameInfo.Data.playPhase == PlayPhase.NIGHT && potentiallyOvercharged && remainingTime <= secondHalfTime && Manager.Instance.handleOvercharged && Manager.Instance.overchargedTeammate == -1)
                 {
                     int tgc1 = Manager.Instance.TargetsCount(MenuChoiceType.NightAbility, teammateRole, teammatePosition);
                     int tgc2 = Manager.Instance.TargetsCount(MenuChoiceType.NightAbility2, teammateRole, teammatePosition);

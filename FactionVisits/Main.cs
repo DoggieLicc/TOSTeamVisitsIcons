@@ -15,19 +15,6 @@ namespace FactionVisits
         public void Start()
         {
             Console.WriteLine("Modding time!");
-            try
-            {
-                DictionaryExtensions.SetValue(Settings.SettingsCache, "Display Mode", ModSettings.GetString("Display Mode", "doggie.licc.factionvisits"));
-                DictionaryExtensions.SetValue(Settings.SettingsCache, "Role Revival Icon", ModSettings.GetBool("Role Revival Icon", "doggie.licc.factionvisits"));
-                DictionaryExtensions.SetValue(Settings.SettingsCache, "Book Icon", ModSettings.GetBool("Book Icon", "doggie.licc.factionvisits"));
-                DictionaryExtensions.SetValue(Settings.SettingsCache, "Special Ability Icon", ModSettings.GetBool("Special Ability Icon", "doggie.licc.factionvisits"));
-                DictionaryExtensions.SetValue(Settings.SettingsCache, "Show Own Actions", ModSettings.GetBool("Show Own Actions", "doggie.licc.factionvisits"));
-                DictionaryExtensions.SetValue(Settings.SettingsCache, "Handle Overcharged", ModSettings.GetString("Handle Overcharged", "doggie.licc.factionvisits"));
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("FactionVisits The rainbow faction crashed the mod. Contact pokegustavo. Error: " + ex.Message);
-            }
             try 
             {
                 Settings.fancyUI = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, "SalemModLoader\\Mods\\FancyUI.dll")); 
@@ -52,37 +39,6 @@ namespace FactionVisits
     {
         public static Assembly fancyUI = null;
         public static Assembly betterTos = null;
-        public static Dictionary<string, object> SettingsCache = new Dictionary<string, object>
-        {
-            {
-                "Display Mode",
-                "Role Icon"
-            },
-            {
-                "Revival Icon",
-                false
-            },
-            {
-                "Book Icon",
-                "Replace Icon"
-            },
-            {
-                "Special Ability Icon",
-                "Add Icon"
-            },
-            {
-                "Show Own Actions",
-                "Never"
-            },
-            {
-                "Day Ability Icons",
-                true
-            },
-            {
-                "Handle Overcharged",
-                "Only Myself"
-            }
-        };
 
         public ModSettings.DropdownSetting DisplayMode 
         {
@@ -94,11 +50,7 @@ namespace FactionVisits
                     Description = "When showing the icons of your teammates you can choose to show the icon of their role (with some exceptions for roles that have 2 targets), or you can choose to show the ability icon",
                     Options = DisplaySettings,
                     AvailableInGame = false,
-                    Available = true,
-                    OnChanged = delegate (string s)
-                    {
-                        DictionaryExtensions.SetValue(SettingsCache, "Display Mode", s);
-                    }
+                    Available = true
                 };
                 return dropdownSetting;
             }
@@ -114,11 +66,7 @@ namespace FactionVisits
                     Description = "Dictates whether the Necronomicon icon should be disabled, replace the role/ability icon, or be added next to role/ability icon",
                     Options = BookIconSettings,
                     AvailableInGame = false,
-                    Available = true,
-                    OnChanged = delegate (string s)
-                    {
-                        DictionaryExtensions.SetValue(SettingsCache, "Book Icon", s);
-                    }
+                    Available = true
                 };
                 return dropdownSetting;
             }
@@ -134,11 +82,7 @@ namespace FactionVisits
                     Description = "Dictates whether the special ability icon should be disabled, replace the role/ability icon, or be added next to role/ability icon",
                     Options = SpecialAbilitySettings,
                     AvailableInGame = false,
-                    Available = true,
-                    OnChanged = delegate (string s)
-                    {
-                        DictionaryExtensions.SetValue(SettingsCache, "Special Ability Icon", s);
-                    }
+                    Available = true
                 };
                 return dropdownSetting;
             }
@@ -154,11 +98,7 @@ namespace FactionVisits
                     Description = "Dictates whether the mod should handle overcharged abilities for you, all teammates, or be disabled.\n\nNOTE: Handling all teammate's overcharges is experimental, as there's no 100% way to tell if a teammate's overcharged.",
                     Options = HandleOverchargedSettings,
                     AvailableInGame = false,
-                    Available = true,
-                    OnChanged = delegate (string s)
-                    {
-                        DictionaryExtensions.SetValue(SettingsCache, "Handle Overcharged", s);
-                    }
+                    Available = true
                 };
                 return dropdownSetting;
             }
@@ -171,14 +111,10 @@ namespace FactionVisits
                 ModSettings.DropdownSetting dropdownSetting = new ModSettings.DropdownSetting
                 {
                     Name = "Show Own Actions",
-                    Description = "Dictates whether icons will be added for your own actions",
+                    Description = "Dictates whether icons will be added for your own actions\n\nSetting to \"Only as Factional Evil \" means it will only add icons for your own abilities when you are playing as an evil with a night-chat.",
                     Options = ShowOwnActionSettings,
                     AvailableInGame = false,
-                    Available = true,
-                    OnChanged = delegate (string s)
-                    {
-                        DictionaryExtensions.SetValue(SettingsCache, "Show Own Actions", s);
-                    }
+                    Available = true
                 };
                 return dropdownSetting;
             }
@@ -195,11 +131,7 @@ namespace FactionVisits
                     "instead of the secondary ability icon.",
                     DefaultValue = false,
                     AvailableInGame = false,
-                    Available = true,
-                    OnChanged = delegate (bool b)
-                    {
-                        DictionaryExtensions.SetValue(SettingsCache, "Role Revival Icon", b);
-                    }
+                    Available = true
                 };
                 return checkboxSetting;
 
@@ -213,14 +145,10 @@ namespace FactionVisits
                 ModSettings.CheckboxSetting checkboxSetting = new ModSettings.CheckboxSetting 
                 {
                     Name = "Day Ability Icons",
-                    Description = "If enabled, icons will be added for your faction member's day abilities (Jailing, indoc, etc.)",
+                    Description = "If enabled, icons will be added for your faction member's day abilities (Jailing, indoc, etc.)\n\nDoes not add icons for instant day abilities (Revealing, Meteoring, etc.)",
                     DefaultValue = true,
                     AvailableInGame = false,
-                    Available = true,
-                    OnChanged = delegate (bool b)
-                    {
-                        DictionaryExtensions.SetValue(SettingsCache, "Day Ability Icons", b);
-                    }
+                    Available = true
                 };
                 return checkboxSetting;
 
