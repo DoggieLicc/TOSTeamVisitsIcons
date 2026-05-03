@@ -52,6 +52,7 @@ namespace FactionVisits
             Role.JAILOR,
             Role.POTIONMASTER,
             Role.AMNESIAC,
+            Role.COVENLEADER,
             (Role)65 // BTOS2 Socialite
         };
         // Factional evil factions
@@ -526,11 +527,11 @@ namespace FactionVisits
                 }
                 bool pmerNotUsingKillPot = teammateRole == Role.POTIONMASTER && additData != 3;
                 //Second part is a check for BTOS2 Coven-SK using Posses
-                if (hasNecronomicon && !pmerNotUsingKillPot && ((menuChoiceType == MenuChoiceType.NightAbility) || (teammateRole == Role.SHROUD || teammateRole == Role.WEREWOLF) || (teammateRole == Role.SERIALKILLER && menuChoiceType == MenuChoiceType.NightAbility2 && Manager.isModded())))
+                if (hasNecronomicon && !pmerNotUsingKillPot && ((menuChoiceType == MenuChoiceType.NightAbility) || (teammateRole == Role.SHROUD || teammateRole == Role.WEREWOLF || teammateRole == Role.TRICKSTER) || (teammateRole == Role.SERIALKILLER && menuChoiceType == MenuChoiceType.NightAbility2 && Manager.isModded())))
                 {
                     bool isShrouding = false;
                     if (teammateRole == Role.SHROUD && tSpecialAbiilityData.ContainsKey(teammatePosition)) isShrouding = tSpecialAbiilityData[teammatePosition];
-                    bool replaceAbility = (BookReplacesAbility.Contains(teammateRole) && !isShrouding) && menuChoiceType == MenuChoiceType.NightAbility && ModSettings.GetString("Display Mode") == "Ability Icon";
+                    bool replaceAbility = (((BookReplacesAbility.Contains(teammateRole) && !isShrouding) && menuChoiceType == MenuChoiceType.NightAbility) || ((teammateRole == Role.DREAMWEAVER && Manager.isModded()) || teammateRole == Role.TRICKSTER)) && ModSettings.GetString("Display Mode") == "Ability Icon";
                     Console.WriteLine("FactionVisits book handler - replaceAbility?: " + replaceAbility);
                     switch (ModSettings.GetString("Book Icon"))
                     {
@@ -627,6 +628,11 @@ namespace FactionVisits
                     Console.WriteLine("FactionVisits special ability case scenario");
                     sprite = Manager.GetSprite(roleData, teammateFaction, 3);
                 }
+                // Always use matchmake icon for btos2 seer ability2
+                if (teammateRole == Role.SEER && menuChoiceType == MenuChoiceType.NightAbility2 && Manager.isModded())
+                {
+                    sprite = Manager.GetSprite(roleData, teammateFaction, 3);
+                }
                 Console.WriteLine("FactionVisits starting the request");
                 switch (menuChoiceType)
                 {
@@ -645,6 +651,7 @@ namespace FactionVisits
                         }
                         break;
                     case MenuChoiceType.NightAbility2:
+                        if (teammateRole == Role.SEER && Manager.isModded() && ModSettings.GetString("Special Ability Icon") == "No Icon") return;
                         if (sprite)
                         {
                             Manager.Instance.ChangeTarget(MenuChoiceType.NightAbility2, teammateTarget2, sprite, teammateRole, teammatePosition);
@@ -1018,7 +1025,7 @@ namespace FactionVisits
                     break;
                 case Role.RETRIBUTIONIST:
                 case Role.NECROMANCER:
-                    if (abilityId == MenuChoiceType.NightAbility)
+                    if (abilityId == MenuChoiceType.NightAbility || (abilityId == MenuChoiceType.SpecialAbility && targetPlayer == -1))
                     {
                         CancelTarget(MenuChoiceType.NightAbility, role, actorPlayer);
                         CancelTarget(MenuChoiceType.NightAbility2, role, actorPlayer);
@@ -1034,6 +1041,7 @@ namespace FactionVisits
                 case (Role)59: //Inquisitor in BTOS2, Catalyst in Vanilla
                 case (Role)62: //Warlock in BTOS2
                 case (Role)65: //Socialite in BTOS2
+                case Role.DREAMWEAVER:
                 case Role.JAILOR:
                 case Role.SOCIALITE:
                 case Role.MONARCH:
