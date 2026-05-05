@@ -308,6 +308,12 @@ namespace FactionVisits
                     additData = potionChoiceData;
                 }
 
+                // Set current amount of stone charges when we're medusa
+                if (isMe && teammateRole == Role.MEDUSA)
+                {
+                    additData = Service.Game.Sim.info.roleCardObservation.Data.normalAbilityRemaining;
+                }
+
                 if (menuChoiceType == MenuChoiceType.SpecialAbility && teammateRole == Role.SHROUD)
                 {
                     Console.WriteLine("FactionVisits toggleable special ability data to cache");
@@ -484,7 +490,12 @@ namespace FactionVisits
                             teammateTarget2 = teammateTarget1;
                         }
                     }
-                    if (teammateRole == Role.POTIONMASTER || teammateRole == Role.VOODOOMASTER || (Manager.isModded() && teammateRole == Role.BAKER))
+                    if (teammateRole == Role.MEDUSA)
+                    {
+                        sprite = Manager.GetSprite(roleData, teammateFaction, 1);
+                        if (additData == 0) sprite = null;
+                    }
+                    else if (teammateRole == Role.POTIONMASTER || teammateRole == Role.VOODOOMASTER || (Manager.isModded() && teammateRole == Role.BAKER))
                     {
                         if (teammateRole == Role.BAKER && !isMe) //Game doesn't tell us our teammates bread choice :( use Feed icon instead
                         {
